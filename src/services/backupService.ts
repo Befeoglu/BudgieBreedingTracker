@@ -44,7 +44,7 @@ export class BackupService {
     const { data: userData } = await supabase
       .from('users')
       .select('id')
-      .eq('auth_user_id', user.id)
+      .eq('id', user.id)
       .single();
 
     return userData?.id || null;

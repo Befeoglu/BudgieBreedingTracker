@@ -87,7 +87,7 @@ export const TodoList: React.FC = () => {
     let { data: userData, error } = await supabase
       .from('users')
       .select('id')
-      .eq('auth_user_id', user.id)
+      .eq('id', user.id)
       .maybeSingle();
 
     if (error) {
@@ -100,13 +100,8 @@ export const TodoList: React.FC = () => {
       const { data: newUser, error: createError } = await supabase
         .from('users')
         .insert({
-          auth_user_id: user.id,
-          email: user.email || '',
-          full_name: null,
-          subscription_status: 'free',
-          settings: {},
-          language: 'tr',
-          theme: 'light'
+          id: user.id,
+          email: user.email || ''
         })
         .select('id')
         .single();
