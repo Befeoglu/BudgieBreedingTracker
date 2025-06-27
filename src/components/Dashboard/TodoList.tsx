@@ -83,35 +83,21 @@ export const TodoList: React.FC = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    // Try to get user profile, create if doesn't exist
-    let { data: userData, error } = await supabase
+    // Use upsert to handle existing users gracefully
+    const { data: userData, error } = await supabase
       .from('users')
+      .upsert({
+        id: user.id,
+        email: user.email || ''
+      }, {
+        onConflict: 'id'
+      })
       .select('id')
-      .eq('id', user.id)
-      .maybeSingle();
+      .single();
 
     if (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('Error upserting user profile:', error);
       return null;
-    }
-
-    // If no profile exists, create one
-    if (!userData) {
-      const { data: newUser, error: createError } = await supabase
-        .from('users')
-        .insert({
-          id: user.id,
-          email: user.email || ''
-        })
-        .select('id')
-        .single();
-
-      if (createError) {
-        console.error('Error creating user profile:', createError);
-        return null;
-      }
-
-      userData = newUser;
     }
 
     return userData.id;
