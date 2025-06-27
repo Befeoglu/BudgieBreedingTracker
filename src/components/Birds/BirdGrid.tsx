@@ -4,20 +4,7 @@ import { BirdForm } from './BirdForm';
 import { supabase } from '../../lib/supabase';
 import { format, differenceInMonths } from 'date-fns';
 import { tr } from 'date-fns/locale';
-
-interface Bird {
-  id: string;
-  name: string;
-  species: string;
-  gender: 'male' | 'female';
-  birth_date: string;
-  ring_number: string;
-  color_mutation?: string;
-  health_notes?: string;
-  photo_url?: string;
-  is_favorite: boolean;
-  created_at: string;
-}
+import { Bird } from '../../types';
 
 interface BirdCardProps extends Bird {
   onEdit: (bird: Bird) => void;
@@ -42,7 +29,7 @@ const BirdCard: React.FC<BirdCardProps> = ({
 }) => {
   const genderColor = gender === 'male' ? 'text-blue-600' : 'text-pink-600';
   const genderSymbol = gender === 'male' ? '♂' : '♀';
-  const age = differenceInMonths(new Date(), new Date(birth_date));
+  const age = differenceInMonths(new Date(), new Date(birth_date || ''));
   const ageText = age < 12 ? `${age} ay` : `${Math.floor(age / 12)} yaş`;
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
@@ -139,18 +126,10 @@ export const BirdGrid: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .single();
-
-      if (!userData) return;
-
       const { data, error } = await supabase
         .from('birds')
         .select('*')
-        .eq('user_id', userData.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -174,7 +153,7 @@ export const BirdGrid: React.FC = () => {
       filtered = filtered.filter(bird =>
         bird.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         bird.ring_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        bird.species.toLowerCase().includes(searchTerm.toLowerCase())
+        (bird.species && bird.species.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
@@ -284,7 +263,7 @@ export const BirdGrid: React.FC = () => {
     }, 3000);
   };
 
-  const uniqueSpecies = Array.from(new Set(birds.map(bird => bird.species)));
+  const uniqueSpecies = Array.from(new Set(birds.map(bird => bird.species).filter(Boolean)));
 
   if (loading) {
     return (
