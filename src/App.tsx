@@ -11,6 +11,9 @@ import { BirdGrid } from './components/Birds/BirdGrid';
 import { CalendarView } from './components/Calendar/CalendarView';
 import { StatsOverview } from './components/Stats/StatsOverview';
 import { SettingsPanel } from './components/Settings/SettingsPanel';
+import { IncubationView } from './components/Incubation/IncubationView';
+import { ChicksView } from './components/Chicks/ChicksView';
+import { PedigreeView } from './components/Pedigree/PedigreeView';
 import { ProfileEditModal } from './components/Profile/ProfileEditModal';
 
 function App() {
@@ -43,22 +46,40 @@ function App() {
             <TodoList />
           </div>
         );
+      case 'stats':
+        return (
+          <div className="animate-slide-up">
+            <StatsOverview />
+          </div>
+        );
       case 'birds':
         return (
           <div className="animate-slide-up">
             <BirdGrid />
           </div>
         );
+      case 'incubation':
+        return (
+          <div className="animate-slide-up">
+            <IncubationView />
+          </div>
+        );
+      case 'chicks':
+        return (
+          <div className="animate-slide-up">
+            <ChicksView />
+          </div>
+        );
+      case 'pedigree':
+        return (
+          <div className="animate-slide-up">
+            <PedigreeView />
+          </div>
+        );
       case 'calendar':
         return (
           <div className="animate-slide-up">
             <CalendarView />
-          </div>
-        );
-      case 'stats':
-        return (
-          <div className="animate-slide-up">
-            <StatsOverview />
           </div>
         );
       case 'settings':
@@ -75,13 +96,19 @@ function App() {
   const getPageTitle = () => {
     switch (activeTab) {
       case 'dashboard':
-        return 'Pano';
-      case 'birds':
-        return 'Kuşlarım';
-      case 'calendar':
-        return 'Takvim';
+        return 'AnaSayfa';
       case 'stats':
         return 'İstatistikler';
+      case 'birds':
+        return 'Kuşlarım';
+      case 'incubation':
+        return 'Kuluçka Takibi';
+      case 'chicks':
+        return 'Yavrular';
+      case 'pedigree':
+        return 'Soy Ağacı';
+      case 'calendar':
+        return 'Takvim';
       case 'settings':
         return 'Ayarlar';
       default:

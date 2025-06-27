@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Bird, Calendar, BarChart3 } from 'lucide-react';
+import { Home, BarChart3, Bird, Egg, Baby, GitBranch } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: string;
@@ -8,15 +8,17 @@ interface BottomNavProps {
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab }) => {
   const tabs = [
-    { id: 'dashboard', label: 'Pano', icon: Home },
-    { id: 'birds', label: 'Kuşlarım', icon: Bird },
-    { id: 'calendar', label: 'Takvim', icon: Calendar },
+    { id: 'dashboard', label: 'AnaSayfa', icon: Home },
     { id: 'stats', label: 'İstatistik', icon: BarChart3 },
+    { id: 'birds', label: 'Kuşlarım', icon: Bird },
+    { id: 'incubation', label: 'Kuluçka', icon: Egg },
+    { id: 'chicks', label: 'Yavrular', icon: Baby },
+    { id: 'pedigree', label: 'SoyAğacı', icon: GitBranch },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 pb-safe">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4">
+      <div className="max-w-7xl mx-auto px-1 sm:px-2">
         <div className="flex justify-around">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -26,7 +28,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center py-2 sm:py-3 px-1 sm:px-2 min-w-0 flex-1 transition-colors ${
+                className={`flex flex-col items-center py-2 sm:py-3 px-1 min-w-0 flex-1 transition-colors ${
                   isActive
                     ? 'text-primary-600'
                     : 'text-neutral-500 hover:text-neutral-700'
