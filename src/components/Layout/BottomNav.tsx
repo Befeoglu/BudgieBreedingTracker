@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Bird, Calendar, BarChart3, Settings } from 'lucide-react';
+import { Home, Bird, Calendar, BarChart3 } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: string;
@@ -12,7 +12,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
     { id: 'birds', label: 'Kuşlarım', icon: Bird },
     { id: 'calendar', label: 'Takvim', icon: Calendar },
     { id: 'stats', label: 'İstatistik', icon: BarChart3 },
-    { id: 'settings', label: 'Ayarlar', icon: Settings },
   ];
 
   return (
