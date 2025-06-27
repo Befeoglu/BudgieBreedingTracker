@@ -78,8 +78,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
           full_name: formData.full_name || null,
           language: formData.language,
           theme: formData.theme,
-          avatar_url: formData.avatar_url || null,
-          updated_at: new Date().toISOString()
+          avatar_url: formData.avatar_url || null
         })
         .eq('id', user.id);
 
