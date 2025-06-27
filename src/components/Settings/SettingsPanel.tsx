@@ -52,7 +52,7 @@ export const SettingsPanel: React.FC = () => {
       support: 'Destek & İletişim',
       privacy: 'Gizlilik Politikası',
       terms: 'Kullanım Şartları',
-      description: 'Kuluçka Takip, kuş yetiştiricileri için geliştirilmiş profesyonel bir takip sistemidir.'
+      description: 'BudgieBreedingTracker, muhabbet kuşu yetiştiricileri için geliştirilmiş profesyonel bir takip sistemidir.'
     },
     en: {
       title: 'Settings',
@@ -83,7 +83,7 @@ export const SettingsPanel: React.FC = () => {
       support: 'Support & Contact',
       privacy: 'Privacy Policy',
       terms: 'Terms of Service',
-      description: 'Kuluçka Takip is a professional tracking system developed for bird breeders.'
+      description: 'BudgieBreedingTracker is a professional tracking system developed for budgerigar breeders.'
     }
   };
 

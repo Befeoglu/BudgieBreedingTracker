@@ -164,8 +164,8 @@ export const AuthForm: React.FC = () => {
             </h1>
             <p className="text-gray-600 text-base sm:text-lg font-medium leading-relaxed">
               {isSignUp 
-                ? 'Kuluçka takibinizi başlatın' 
-                : 'Kuluçka yolculuğunuza devam edin'
+                ? 'BudgieBreedingTracker\'a katılın' 
+                : 'Muhabbet kuşu üretim takibinize devam edin'
               }
             </p>
           </div>

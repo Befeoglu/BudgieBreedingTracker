@@ -58,7 +58,7 @@ export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSe
           <div className="flex items-center min-w-0 flex-1">
             <div className="flex-shrink-0">
               <h1 className="text-lg sm:text-xl font-bold text-primary-600 truncate">
-                Kuluçka Takip
+                BudgieBreedingTracker
               </h1>
             </div>
             <div className="ml-3 sm:ml-6 min-w-0 flex-1">
