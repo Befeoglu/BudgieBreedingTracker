@@ -1,0 +1,284 @@
+import React, { useState, useEffect } from 'react';
+import { X, Save, User, Mail, Calendar, Camera } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+
+interface ProfileEditModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  user: any;
+}
+
+export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, user }) => {
+  const [formData, setFormData] = useState({
+    full_name: '',
+    email: '',
+    language: 'tr',
+    theme: 'light',
+    avatar_url: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (isOpen && user) {
+      loadUserProfile();
+    }
+  }, [isOpen, user]);
+
+  const loadUserProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setFormData({
+          full_name: data.full_name || '',
+          email: data.email || user.email || '',
+          language: data.language || 'tr',
+          theme: data.theme || 'light',
+          avatar_url: data.avatar_url || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'E-posta adresi zorunludur';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Geçerli bir e-posta adresi girin';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          full_name: formData.full_name || null,
+          language: formData.language,
+          theme: formData.theme,
+          avatar_url: formData.avatar_url || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // E-posta değişikliği için ayrı işlem gerekebilir
+      if (formData.email !== user.email) {
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: formData.email
+        });
+        
+        if (emailError) {
+          console.warn('Email update error:', emailError);
+          showToast('Profil güncellendi, ancak e-posta değişikliği için onay gerekli', 'warning');
+        } else {
+          showToast('Profil başarıyla güncellendi!', 'success');
+        }
+      } else {
+        showToast('Profil başarıyla güncellendi!', 'success');
+      }
+
+      onClose();
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      showToast(error.message || 'Profil güncellenirken hata oluştu', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
+    const toast = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-green-500' : type === 'warning' ? 'bg-yellow-500' : 'bg-red-500';
+    toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-50 animate-slide-up ${bgColor}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.remove();
+    }, 4000);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-neutral-800">Profil Düzenle</h2>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Avatar */}
+            <div className="text-center">
+              <div className="relative inline-block">
+                <div className="w-24 h-24 bg-primary-100 rounded-full overflow-hidden border-4 border-white shadow-lg">
+                  {formData.avatar_url ? (
+                    <img
+                      src={formData.avatar_url}
+                      alt="Profil fotoğrafı"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-8 h-8 text-primary-600" />
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="absolute bottom-0 right-0 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center hover:bg-primary-700 transition-colors shadow-lg"
+                >
+                  <Camera className="w-4 h-4 text-white" />
+                </button>
+              </div>
+              <p className="text-sm text-neutral-600 mt-2">Profil fotoğrafını değiştir</p>
+            </div>
+
+            {/* Ad Soyad */}
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                Ad Soyad
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                <input
+                  type="text"
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  className="w-full pl-10 pr-4 py-3 border-2 border-neutral-200 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300"
+                  placeholder="Adınız ve soyadınız"
+                />
+              </div>
+            </div>
+
+            {/* E-posta */}
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                E-posta Adresi
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300 ${
+                    errors.email ? 'border-red-300 focus:ring-red-200 focus:border-red-400' : 'border-neutral-200'
+                  }`}
+                  placeholder="ornek@email.com"
+                />
+                {errors.email && (
+                  <p className="mt-2 text-sm text-red-600 animate-shake">{errors.email}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Dil */}
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                Dil
+              </label>
+              <select
+                value={formData.language}
+                onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300"
+              >
+                <option value="tr">Türkçe</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+
+            {/* Tema */}
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                Tema
+              </label>
+              <select
+                value={formData.theme}
+                onChange={(e) => setFormData({ ...formData, theme: e.target.value })}
+                className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300"
+              >
+                <option value="light">Açık Tema</option>
+                <option value="dark">Koyu Tema</option>
+                <option value="auto">Sistem Ayarı</option>
+              </select>
+            </div>
+
+            {/* Kayıt Tarihi (Sadece Görüntüleme) */}
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                Kayıt Tarihi
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                <input
+                  type="text"
+                  value={user?.created_at ? new Date(user.created_at).toLocaleDateString('tr-TR') : ''}
+                  disabled
+                  className="w-full pl-10 pr-4 py-3 border-2 border-neutral-200 rounded-xl bg-neutral-50 text-neutral-500"
+                />
+              </div>
+            </div>
+
+            {/* Butonlar */}
+            <div className="flex gap-4 pt-6">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 bg-gradient-to-r from-primary-500 to-primary-600 text-white py-3 px-6 rounded-xl font-bold hover:from-primary-600 hover:to-primary-700 focus:ring-4 focus:ring-primary-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Kaydet
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-3 bg-neutral-100 text-neutral-700 rounded-xl font-bold hover:bg-neutral-200 focus:ring-4 focus:ring-neutral-200 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                İptal
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
