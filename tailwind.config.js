@@ -48,6 +48,9 @@ export default {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         poppins: ['Poppins', 'system-ui', 'sans-serif'],
       },
+      spacing: {
+        'safe': 'env(safe-area-inset-bottom)',
+      },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'slide-up': 'slideUp 0.6s ease-out',
@@ -139,6 +142,9 @@ export default {
           '0%, 100%': { transform: 'translateY(0px) translateX(0px)' },
           '50%': { transform: 'translateY(-10px) translateX(8px)' },
         },
+      },
+      screens: {
+        'xs': '475px',
       },
     },
   },

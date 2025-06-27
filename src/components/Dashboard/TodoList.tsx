@@ -44,27 +44,27 @@ const TodoItem: React.FC<TodoItemProps> = ({
     <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-neutral-200 hover:border-primary-200 transition-colors">
       <button
         onClick={() => onToggle(id)}
-        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+        className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
           completed
             ? 'bg-primary-600 border-primary-600'
             : 'border-neutral-300 hover:border-primary-500'
         }`}
       >
-        {completed && <Check className="w-3 h-3 text-white" />}
+        {completed && <Check className="w-2 h-2 sm:w-3 sm:h-3 text-white" />}
       </button>
       
-      <div className="flex-1">
-        <h4 className={`font-medium ${completed ? 'text-neutral-500 line-through' : 'text-neutral-800'}`}>
+      <div className="flex-1 min-w-0">
+        <h4 className={`font-medium text-sm sm:text-base leading-tight ${completed ? 'text-neutral-500 line-through' : 'text-neutral-800'}`}>
           {title}
         </h4>
         {description && (
-          <p className={`text-sm ${completed ? 'text-neutral-400' : 'text-neutral-600'}`}>
+          <p className={`text-xs sm:text-sm mt-1 leading-tight ${completed ? 'text-neutral-400' : 'text-neutral-600'}`}>
             {description}
           </p>
         )}
       </div>
       
-      <Icon className={`w-4 h-4 ${priorityColors[priority]} ${completed ? 'opacity-50' : ''}`} />
+      <Icon className={`w-3 h-3 sm:w-4 sm:h-4 ${priorityColors[priority]} ${completed ? 'opacity-50' : ''} flex-shrink-0`} />
     </div>
   );
 };
@@ -197,10 +197,10 @@ export const TodoList: React.FC = () => {
   if (loading) {
     return (
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-neutral-800 mb-4">Bugün Yapılacaklar</h3>
+        <h3 className="text-base sm:text-lg font-semibold text-neutral-800 mb-4 leading-tight">Bugün Yapılacaklar</h3>
         <div className="animate-pulse space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 bg-neutral-200 rounded-lg"></div>
+            <div key={i} className="h-14 sm:h-16 bg-neutral-200 rounded-lg"></div>
           ))}
         </div>
       </div>
@@ -212,29 +212,29 @@ export const TodoList: React.FC = () => {
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-neutral-800">Bugün Yapılacaklar</h3>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-neutral-600">
+        <h3 className="text-base sm:text-lg font-semibold text-neutral-800 leading-tight">Bugün Yapılacaklar</h3>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="text-xs sm:text-sm text-neutral-600 whitespace-nowrap">
             {completedCount}/{todos.length} tamamlandı
           </span>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+            className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors flex-shrink-0"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
           </button>
         </div>
       </div>
 
       {showAddForm && (
-        <form onSubmit={handleAddTodo} className="mb-4 p-4 bg-neutral-50 rounded-lg">
+        <form onSubmit={handleAddTodo} className="mb-4 p-3 sm:p-4 bg-neutral-50 rounded-lg">
           <div className="space-y-3">
             <input
               type="text"
               placeholder="Görev başlığı..."
               value={newTodo.title}
               onChange={(e) => setNewTodo({ ...newTodo, title: e.target.value })}
-              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm sm:text-base"
               required
             />
             <input
@@ -242,31 +242,33 @@ export const TodoList: React.FC = () => {
               placeholder="Açıklama (isteğe bağlı)..."
               value={newTodo.description}
               onChange={(e) => setNewTodo({ ...newTodo, description: e.target.value })}
-              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm sm:text-base"
             />
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <select
                 value={newTodo.priority}
                 onChange={(e) => setNewTodo({ ...newTodo, priority: e.target.value as any })}
-                className="px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm sm:text-base"
               >
                 <option value="low">Düşük Öncelik</option>
                 <option value="medium">Orta Öncelik</option>
                 <option value="high">Yüksek Öncelik</option>
               </select>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                Ekle
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAddForm(false)}
-                className="px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors"
-              >
-                İptal
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 sm:flex-none px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base"
+                >
+                  Ekle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="flex-1 sm:flex-none px-4 py-2 text-neutral-600 hover:text-neutral-800 transition-colors text-sm sm:text-base"
+                >
+                  İptal
+                </button>
+              </div>
             </div>
           </div>
         </form>
@@ -274,12 +276,12 @@ export const TodoList: React.FC = () => {
       
       <div className="space-y-3">
         {todos.length === 0 ? (
-          <div className="text-center py-8 text-neutral-500">
-            <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Henüz görev eklenmemiş</p>
+          <div className="text-center py-6 sm:py-8 text-neutral-500">
+            <Clock className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 opacity-50" />
+            <p className="text-sm sm:text-base leading-tight">Henüz görev eklenmemiş</p>
             <button
               onClick={() => setShowAddForm(true)}
-              className="mt-2 text-primary-600 hover:text-primary-700 font-medium"
+              className="mt-2 text-primary-600 hover:text-primary-700 font-medium text-sm sm:text-base"
             >
               İlk görevinizi ekleyin
             </button>
