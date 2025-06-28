@@ -99,9 +99,9 @@ export class BackupService {
         .eq('user_id', userId);
       backupData.birds = birds || [];
 
-      // Fetch incubations data
+      // Fetch incubations data (clutches table)
       const { data: incubations } = await supabase
-        .from('incubations')
+        .from('clutches')
         .select('*')
         .eq('user_id', userId);
       backupData.incubations = incubations || [];
@@ -110,7 +110,7 @@ export class BackupService {
       const { data: eggs } = await supabase
         .from('eggs')
         .select('*')
-        .in('incubation_id', (incubations || []).map(i => i.id));
+        .in('clutch_id', (incubations || []).map(i => i.id));
       backupData.eggs = eggs || [];
 
       // Fetch chicks data
@@ -245,10 +245,10 @@ export class BackupService {
         if (birdsError) console.error('Birds restore error:', birdsError);
       }
 
-      // Restore incubations data
+      // Restore incubations data (clutches table)
       if (backupData.incubations.length > 0) {
         const { error: incubationsError } = await supabase
-          .from('incubations')
+          .from('clutches')
           .upsert(backupData.incubations, { onConflict: 'id' });
         
         if (incubationsError) console.error('Incubations restore error:', incubationsError);

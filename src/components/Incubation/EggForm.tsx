@@ -13,7 +13,7 @@ interface Bird {
 
 interface EggData {
   id?: string;
-  incubation_id: string;
+  clutch_id: string;
   number: number;
   status: 'belirsiz' | 'boş' | 'dolu' | 'çıktı';
   mother_id?: string;
@@ -23,7 +23,7 @@ interface EggData {
 }
 
 interface EggFormProps {
-  incubationId: string;
+  clutchId: string;
   defaultMotherId?: string;
   defaultFatherId?: string;
   existingEggNumbers: number[];
@@ -34,7 +34,7 @@ interface EggFormProps {
 }
 
 export const EggForm: React.FC<EggFormProps> = ({
-  incubationId,
+  clutchId,
   defaultMotherId,
   defaultFatherId,
   existingEggNumbers,
@@ -44,7 +44,7 @@ export const EggForm: React.FC<EggFormProps> = ({
   isEditing = false
 }) => {
   const [formData, setFormData] = useState<EggData>({
-    incubation_id: incubationId,
+    clutch_id: clutchId,
     number: 1,
     status: 'belirsiz',
     mother_id: defaultMotherId || '',
@@ -154,7 +154,7 @@ export const EggForm: React.FC<EggFormProps> = ({
 
     try {
       const eggData = {
-        incubation_id: incubationId,
+        clutch_id: clutchId,
         number: formData.number,
         status: formData.status,
         mother_id: formData.mother_id || null,

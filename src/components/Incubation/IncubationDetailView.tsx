@@ -16,7 +16,7 @@ interface Bird {
 
 interface EggData {
   id: string;
-  incubation_id: string;
+  clutch_id: string;
   number: number;
   status: 'belirsiz' | 'boş' | 'dolu' | 'çıktı';
   mother_id?: string;
@@ -72,7 +72,7 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
       const { data, error } = await supabase
         .from('eggs')
         .select('*')
-        .eq('incubation_id', incubation.id)
+        .eq('clutch_id', incubation.id)
         .order('number');
 
       if (error) throw error;
@@ -441,7 +441,7 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
       {/* Yumurta Ekleme/Düzenleme Formu */}
       {showEggForm && (
         <EggForm
-          incubationId={incubation.id}
+          clutchId={incubation.id}
           defaultMotherId={incubation.female_bird_id}
           defaultFatherId={incubation.male_bird_id}
           existingEggNumbers={existingEggNumbers}
