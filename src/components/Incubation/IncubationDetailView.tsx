@@ -631,7 +631,7 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
                           Yavru Gör
                         </button>
                       ) : (
-                        <div className="h-6"></div> {/* Spacer for consistent card heights */}
+                        <div className="h-6">{/* Spacer for consistent card heights */}</div>
                       )}
                     </div>
                     
