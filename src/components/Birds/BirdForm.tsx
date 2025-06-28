@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Upload, X, Save, Trash2, Star, StarOff } from 'lucide-react';
+import { Camera, Upload, X, Save, Trash2, Star, StarOff, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Bird } from '../../types';
 import { DatePicker } from '../Common/DatePicker';
@@ -13,6 +13,12 @@ interface BirdFormProps {
   isEditing?: boolean;
 }
 
+// Rastgele kuş isimleri listesi
+const RANDOM_BIRD_NAMES = [
+  "Cici", "Pofuduk", "Maviş", "Minnoş", "Ponçik", 
+  "Melodi", "Şen", "Pırıltı", "Uçan", "Boncuk"
+];
+
 export const BirdForm: React.FC<BirdFormProps> = ({
   bird,
   onSave,
@@ -21,6 +27,13 @@ export const BirdForm: React.FC<BirdFormProps> = ({
   isEditing = false
 }) => {
   const { t } = useTranslation();
+  
+  // Rastgele isim seçme fonksiyonu
+  const getRandomBirdName = (): string => {
+    const randomIndex = Math.floor(Math.random() * RANDOM_BIRD_NAMES.length);
+    return RANDOM_BIRD_NAMES[randomIndex];
+  };
+
   const [formData, setFormData] = useState({
     name: '',
     ring_number: '',
@@ -37,6 +50,7 @@ export const BirdForm: React.FC<BirdFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string>('');
+  const [nameError, setNameError] = useState<string>('');
 
   useEffect(() => {
     if (bird && isEditing) {
@@ -52,14 +66,74 @@ export const BirdForm: React.FC<BirdFormProps> = ({
         is_favorite: bird.is_favorite || false
       });
       setPhotoPreview(bird.photo_url || '');
+    } else {
+      // Yeni kuş eklerken rastgele isim atama
+      setFormData(prev => ({
+        ...prev,
+        name: getRandomBirdName()
+      }));
     }
   }, [bird, isEditing]);
+
+  // İsim validasyonu - sadece harf, boşluk ve Türkçe karakterler
+  const validateBirdName = (name: string): boolean => {
+    const nameRegex = /^[a-zA-ZçÇğĞıİöÖşŞüÜ\s]+$/;
+    
+    if (!name.trim()) {
+      setNameError('Kuş adı boş olamaz');
+      return false;
+    }
+    
+    if (!nameRegex.test(name)) {
+      setNameError('Kuş adı sadece harf ve boşluk içerebilir');
+      return false;
+    }
+    
+    if (name.length > 50) {
+      setNameError('Kuş adı çok uzun (maksimum 50 karakter)');
+      return false;
+    }
+    
+    setNameError('');
+    return true;
+  };
+
+  // İsim değişiklik handler'ı
+  const handleNameChange = (value: string) => {
+    // Geçersiz karakterleri otomatik filtrele
+    const filteredValue = value.replace(/[^a-zA-ZçÇğĞıİöÖşŞüÜ\s]/g, '');
+    
+    setFormData(prev => ({ ...prev, name: filteredValue }));
+    validateBirdName(filteredValue);
+    
+    if (errors.name) {
+      setErrors(prev => ({ ...prev, name: '' }));
+    }
+  };
+
+  // Rastgele isim yenileme
+  const handleRefreshName = () => {
+    const newRandomName = getRandomBirdName();
+    setFormData(prev => ({ ...prev, name: newRandomName }));
+    setNameError('');
+    
+    // Küçük animasyon efekti için
+    const nameInput = document.getElementById('bird-name-input') as HTMLInputElement;
+    if (nameInput) {
+      nameInput.classList.add('animate-pulse');
+      setTimeout(() => {
+        nameInput.classList.remove('animate-pulse');
+      }, 500);
+    }
+    
+    showToast(`Yeni isim: ${newRandomName}`, 'info');
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = t('birds.birdNameRequired');
+    if (!validateBirdName(formData.name)) {
+      newErrors.name = nameError || t('birds.birdNameRequired');
     }
 
     if (!formData.ring_number.trim()) {
@@ -169,11 +243,15 @@ export const BirdForm: React.FC<BirdFormProps> = ({
     }
   };
 
-  const showToast = (message: string, type: 'success' | 'error') => {
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
     const toast = document.createElement('div');
-    toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-50 animate-slide-up ${
-      type === 'success' ? 'bg-green-500' : 'bg-red-500'
-    }`;
+    const bgColor = {
+      success: 'bg-green-500',
+      error: 'bg-red-500',
+      info: 'bg-blue-500'
+    }[type];
+    
+    toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-50 animate-slide-up ${bgColor}`;
     toast.textContent = message;
     document.body.appendChild(toast);
     
@@ -237,22 +315,74 @@ export const BirdForm: React.FC<BirdFormProps> = ({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
+              {/* Kuş Adı - Gelişmiş */}
+              <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
                   {t('birds.birdName')} <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900/50 focus:border-primary-400 dark:focus:border-primary-600 transition-all duration-300 bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 ${
-                    errors.name ? 'border-red-300 dark:border-red-700 focus:ring-red-200 dark:focus:ring-red-900/50 focus:border-red-400 dark:focus:border-red-600' : 'border-neutral-200 dark:border-neutral-600'
-                  }`}
-                  placeholder={t('birds.birdNamePlaceholder')}
-                />
-                {errors.name && (
-                  <p className="mt-2 text-sm text-red-600 dark:text-red-400 animate-shake">{errors.name}</p>
+                <div className="relative">
+                  <input
+                    id="bird-name-input"
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    className={`w-full pr-12 px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900/50 focus:border-primary-400 dark:focus:border-primary-600 transition-all duration-300 bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 ${
+                      errors.name || nameError ? 'border-red-300 dark:border-red-700 focus:ring-red-200 dark:focus:ring-red-900/50 focus:border-red-400 dark:focus:border-red-600' : 'border-neutral-200 dark:border-neutral-600'
+                    }`}
+                    placeholder={t('birds.birdNamePlaceholder')}
+                    maxLength={50}
+                  />
+                  {/* Yenile Butonu */}
+                  <button
+                    type="button"
+                    onClick={handleRefreshName}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-neutral-500 dark:text-neutral-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all duration-300 group"
+                    title="Rastgele isim seç"
+                  >
+                    <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-300" />
+                  </button>
+                </div>
+                
+                {/* İsim önerileri */}
+                {!isEditing && (
+                  <div className="mt-2">
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
+                      💡 Diğer öneri isimler:
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {RANDOM_BIRD_NAMES.filter(name => name !== formData.name).slice(0, 4).map((suggestedName) => (
+                        <button
+                          key={suggestedName}
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, name: suggestedName }));
+                            setNameError('');
+                            showToast(`İsim "${suggestedName}" olarak değiştirildi`, 'info');
+                          }}
+                          className="px-2 py-1 text-xs bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                        >
+                          {suggestedName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
+                
+                {(errors.name || nameError) && (
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-400 animate-shake leading-tight">
+                    {errors.name || nameError}
+                  </p>
+                )}
+                
+                {/* Karakter sayacı */}
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    ✅ Sadece harf ve boşluk kullanılabilir
+                  </p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {formData.name.length}/50
+                  </p>
+                </div>
               </div>
 
               <div>
