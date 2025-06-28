@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { Moon, Sun, Globe, Bell, Download, Upload, Info, ChevronRight, Database } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Moon, Sun, Globe, Bell, Download, Upload, Info, ChevronRight, Database, LogOut } from 'lucide-react';
 import { BackupPanel } from '../Backup/BackupPanel';
+import { signOut } from '../../lib/auth';
+import { supabase } from '../../lib/supabase';
 
 export const SettingsPanel: React.FC = () => {
   const [darkMode, setDarkMode] = useState(false);
@@ -13,13 +15,112 @@ export const SettingsPanel: React.FC = () => {
   const [autoBackup, setAutoBackup] = useState(true);
   const [backupFrequency, setBackupFrequency] = useState('daily');
   const [showBackupPanel, setShowBackupPanel] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadUserSettings();
+  }, []);
+
+  const loadUserSettings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('language, theme')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading user settings:', error);
+        return;
+      }
+
+      if (data) {
+        setLanguage(data.language || 'tr');
+        setDarkMode(data.theme === 'dark');
+      }
+    } catch (error) {
+      console.error('Error loading user settings:', error);
+    }
+  };
+
+  const updateUserSettings = async (updates: { language?: string; theme?: string }) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Error updating user settings:', error);
+        showToast('Ayarlar güncellenirken hata oluştu', 'error');
+      } else {
+        showToast('Ayarlar başarıyla güncellendi', 'success');
+      }
+    } catch (error) {
+      console.error('Error updating user settings:', error);
+      showToast('Ayarlar güncellenirken hata oluştu', 'error');
+    }
+  };
+
+  const handleLanguageChange = async (newLanguage: 'tr' | 'en') => {
+    setLanguage(newLanguage);
+    await updateUserSettings({ language: newLanguage });
+  };
+
+  const handleThemeChange = async (isDark: boolean) => {
+    setDarkMode(isDark);
+    const theme = isDark ? 'dark' : 'light';
+    await updateUserSettings({ theme });
+    
+    // Apply theme to document
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
+  const handleSignOut = async () => {
+    const confirmed = window.confirm('Hesaptan çıkış yapmak istediğinizden emin misiniz?');
+    if (!confirmed) return;
+
+    setLoading(true);
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+      showToast('Çıkış yaparken hata oluştu', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleExportData = () => {
     console.log('Exporting data...');
+    showToast('Veri dışa aktarma özelliği yakında eklenecek', 'info');
   };
 
   const handleImportData = () => {
     console.log('Importing data...');
+    showToast('Veri içe aktarma özelliği yakında eklenecek', 'info');
+  };
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    const toast = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+    toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-50 animate-slide-up ${bgColor}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.remove();
+    }, 4000);
   };
 
   const texts = {
@@ -47,6 +148,9 @@ export const SettingsPanel: React.FC = () => {
       exportData: 'Verileri İndir',
       importData: 'Verileri Yükle',
       backupRestore: 'Yedekleme & Geri Yükleme',
+      account: 'Hesap',
+      signOut: 'Hesaptan Çıkış Yap',
+      signOutDesc: 'Oturumu sonlandır',
       about: 'Hakkında',
       version: 'Sürüm',
       support: 'Destek & İletişim',
@@ -78,6 +182,9 @@ export const SettingsPanel: React.FC = () => {
       exportData: 'Export Data',
       importData: 'Import Data',
       backupRestore: 'Backup & Restore',
+      account: 'Account',
+      signOut: 'Sign Out',
+      signOutDesc: 'End session',
       about: 'About',
       version: 'Version',
       support: 'Support & Contact',
@@ -125,7 +232,7 @@ export const SettingsPanel: React.FC = () => {
                 </div>
               </div>
               <button
-                onClick={() => setDarkMode(!darkMode)}
+                onClick={() => handleThemeChange(!darkMode)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   darkMode ? 'bg-primary-600' : 'bg-neutral-300'
                 }`}
@@ -148,7 +255,7 @@ export const SettingsPanel: React.FC = () => {
               </div>
               <select
                 value={language}
-                onChange={(e) => setLanguage(e.target.value as 'tr' | 'en')}
+                onChange={(e) => handleLanguageChange(e.target.value as 'tr' | 'en')}
                 className="bg-neutral-100 border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
                 <option value="tr">Türkçe</option>
@@ -290,6 +397,30 @@ export const SettingsPanel: React.FC = () => {
                 <span className="text-sm font-medium text-neutral-700">{t.backupRestore}</span>
               </div>
               <ChevronRight className="w-4 h-4 text-neutral-500" />
+            </button>
+          </div>
+        </div>
+
+        {/* Account */}
+        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+          <h3 className="text-lg font-semibold text-neutral-800 mb-4">{t.account}</h3>
+          
+          <div className="space-y-3">
+            <button
+              onClick={handleSignOut}
+              disabled={loading}
+              className="flex items-center justify-between w-full p-3 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+            >
+              <div className="flex items-center gap-3">
+                <LogOut className="w-5 h-5 text-red-600" />
+                <div className="text-left">
+                  <p className="font-medium text-red-800">{t.signOut}</p>
+                  <p className="text-sm text-red-600">{t.signOutDesc}</p>
+                </div>
+              </div>
+              {loading && (
+                <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+              )}
             </button>
           </div>
         </div>
