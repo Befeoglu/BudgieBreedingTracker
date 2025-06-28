@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 export interface NotificationData {
   id: string;
   user_id: string;
-  type: 'daily_summary' | 'custom_reminder' | 'feeding_reminder' | 'health_check';
+  type: 'daily_summary' | 'hatch_reminder' | 'hatch_occurred' | 'empty_nest' | 'custom_reminder' | 'feeding_reminder' | 'health_check';
   title: string;
   message: string;
   data?: any;
@@ -14,6 +14,7 @@ export interface NotificationData {
 
 export interface NotificationSettings {
   daily_summary: boolean;
+  hatch_reminders: boolean;
   chick_notifications: boolean;
   feeding_reminders: boolean;
   health_checks: boolean;
@@ -29,6 +30,7 @@ class NotificationService {
   private notifications: NotificationData[] = [];
   private settings: NotificationSettings = {
     daily_summary: true,
+    hatch_reminders: true,
     chick_notifications: true,
     feeding_reminders: true,
     health_checks: true,
@@ -50,17 +52,6 @@ class NotificationService {
     await this.loadNotifications();
     await this.loadSettings();
     this.scheduleDailyNotifications();
-    
-    // Setup notification permission
-    if ('Notification' in window) {
-      if (Notification.permission === 'default') {
-        try {
-          await Notification.requestPermission();
-        } catch (error) {
-          console.error('Error requesting notification permission:', error);
-        }
-      }
-    }
   }
 
   async loadNotifications() {
@@ -97,9 +88,6 @@ class NotificationService {
       
       if (data) {
         this.settings = { ...this.settings, ...data.settings };
-      } else {
-        // If no settings found, create default settings
-        await this.saveSettings(this.settings);
       }
     } catch (error) {
       console.error('Error loading notification settings:', error);
@@ -118,8 +106,6 @@ class NotificationService {
         .upsert({
           user_id: user.id,
           settings: this.settings
-        }, {
-          onConflict: 'user_id'
         });
 
       if (error) throw error;
@@ -130,12 +116,6 @@ class NotificationService {
 
   async createNotification(notification: Omit<NotificationData, 'id' | 'user_id' | 'created_at'>) {
     try {
-      // Check if we're in quiet hours
-      if (this.settings.do_not_disturb && this.isQuietTime()) {
-        console.log('Notification suppressed during quiet hours');
-        return;
-      }
-      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -207,6 +187,44 @@ class NotificationService {
     return this.settings;
   }
 
+  // Kuluçka hatırlatıcıları
+  async scheduleHatchReminders(clutchId: string, startDate: string, expectedHatchDate: string) {
+    if (!this.settings.hatch_reminders) return;
+
+    const hatchDate = new Date(expectedHatchDate);
+    const today = new Date();
+
+    // 2 gün öncesi hatırlatıcı
+    const twoDaysBefore = new Date(hatchDate);
+    twoDaysBefore.setDate(hatchDate.getDate() - 2);
+    
+    if (twoDaysBefore > today) {
+      await this.createNotification({
+        type: 'hatch_reminder',
+        title: 'Çıkım Yaklaşıyor! 🥚',
+        message: '2 gün sonra yumurtalarınızın çıkması bekleniyor. Kontrol etmeyi unutmayın!',
+        data: { clutch_id: clutchId },
+        read: false,
+        scheduled_for: twoDaysBefore.toISOString()
+      });
+    }
+
+    // 1 gün öncesi hatırlatıcı
+    const oneDayBefore = new Date(hatchDate);
+    oneDayBefore.setDate(hatchDate.getDate() - 1);
+    
+    if (oneDayBefore > today) {
+      await this.createNotification({
+        type: 'hatch_reminder',
+        title: 'Çıkım Zamanı Geldi! 🐣',
+        message: 'Yarın yumurtalarınızın çıkması bekleniyor. Hazırlıklarınızı tamamlayın!',
+        data: { clutch_id: clutchId },
+        read: false,
+        scheduled_for: oneDayBefore.toISOString()
+      });
+    }
+  }
+
   // Günlük özet bildirimi
   async createDailySummary() {
     if (!this.settings.daily_summary) return;
@@ -267,6 +285,17 @@ class NotificationService {
   }
 
   // Boş yuva uyarısı
+  async notifyEmptyNest(clutchName: string) {
+    await this.createNotification({
+      type: 'empty_nest',
+      title: 'Yuva Boşaldı 🏠',
+      message: `${clutchName} yuvasındaki tüm yumurtalar çıktı veya kaldırıldı.`,
+      read: false,
+      scheduled_for: new Date().toISOString()
+    });
+  }
+
+  // Özel hatırlatıcı
   async createCustomReminder(title: string, message: string, scheduledFor: string) {
     if (!this.settings.custom_reminders) return;
 
@@ -284,15 +313,11 @@ class NotificationService {
     if (!('Notification' in window)) return;
 
     if (Notification.permission === 'granted') {
-      try {
-        new Notification(title, {
-          body,
-          icon: '/vite.svg',
-          badge: '/vite.svg'
-        });
-      } catch (error) {
-        console.error('Error showing notification:', error);
-      }
+      new Notification(title, {
+        body,
+        icon: '/vite.svg',
+        badge: '/vite.svg'
+      });
     } else if (Notification.permission !== 'denied') {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {

@@ -31,28 +31,28 @@ export const QuickStats: React.FC = () => {
   const stats = [
     {
       icon: TrendingUp,
-      title: t('statistics.averageSuccess'),
+      title: 'Başarı Oranı',
       value: '87%',
-      subtitle: 'Son 3 ay',
+      subtitle: 'Son 3 kuluçka',
       color: 'bg-primary-500'
     },
     {
       icon: Clock,
-      title: 'Aktif Çift',
-      value: '3',
-      subtitle: 'Üreme sezonu',
+      title: 'Aktif Kuluçka',
+      value: '2',
+      subtitle: '12 yumurta toplam',
       color: 'bg-secondary-500'
     },
     {
       icon: Target,
-      title: t('dashboard.thisMonthHatched'),
+      title: 'Bu Ay Çıkan',
       value: '18',
       subtitle: '3 farklı çiftten',
       color: 'bg-blue-500'
     },
     {
       icon: Award,
-      title: t('dashboard.totalProduction'),
+      title: 'Toplam Üretim',
       value: '156',
       subtitle: 'Bu yıl başından',
       color: 'bg-purple-500'

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Heart, Camera, Edit3, Star, Trash2 } from 'lucide-react';
 import { BirdForm } from './BirdForm';
 import { supabase } from '../../lib/supabase';
@@ -121,7 +121,7 @@ export const BirdGrid: React.FC = () => {
     filterBirds();
   }, [birds, searchTerm, filterGender, filterSpecies, showFavoritesOnly]);
 
-  const loadBirds = useCallback(async () => {
+  const loadBirds = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -143,9 +143,9 @@ export const BirdGrid: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  const filterBirds = useCallback(() => {
+  const filterBirds = () => {
     let filtered = birds;
 
     // Search filter
@@ -173,9 +173,9 @@ export const BirdGrid: React.FC = () => {
     }
 
     setFilteredBirds(filtered);
-  }, [birds, searchTerm, filterGender, filterSpecies, showFavoritesOnly]);
+  };
 
-  const handleSaveBird = useCallback((savedBird: Bird) => {
+  const handleSaveBird = (savedBird: Bird) => {
     if (editingBird) {
       setBirds(prev => prev.map(bird => bird.id === savedBird.id ? savedBird : bird));
     } else {
@@ -183,9 +183,9 @@ export const BirdGrid: React.FC = () => {
     }
     setShowForm(false);
     setEditingBird(null);
-  }, [editingBird]);
+  };
 
-  const handleEditBird = useCallback((bird: Bird) => {
+  const handleEditBird = (bird: Bird) => {
     setEditingBird(bird);
     setShowForm(true);
   };
@@ -263,7 +263,7 @@ export const BirdGrid: React.FC = () => {
     }, 3000);
   };
 
-  const uniqueSpecies = useMemo(() => Array.from(new Set(birds.map(bird => bird.species).filter(Boolean))), [birds]);
+  const uniqueSpecies = Array.from(new Set(birds.map(bird => bird.species).filter(Boolean)));
 
   if (loading) {
     return (

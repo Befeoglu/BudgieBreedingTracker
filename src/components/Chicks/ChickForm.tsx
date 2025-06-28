@@ -35,7 +35,7 @@ export const ChickForm: React.FC<ChickFormProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     hatch_date: '',
-    weight: '0',
+    weight: '',
     notes: ''
   });
 
@@ -55,13 +55,13 @@ export const ChickForm: React.FC<ChickFormProps> = ({
   }, [chick, isEditing]);
 
   const validateForm = () => {
-    const newErrors: Record<string, string> = {}; 
+    const newErrors: Record<string, string> = {};
 
     if (!formData.hatch_date) {
       newErrors.hatch_date = t('chicks.hatchDateRequired');
     }
 
-    if (formData.weight && (isNaN(parseFloat(formData.weight)) || parseFloat(formData.weight) < 0)) {
+    if (formData.weight && (isNaN(Number(formData.weight)) || Number(formData.weight) < 0)) {
       newErrors.weight = t('chicks.validWeightRequired');
     }
 
@@ -93,7 +93,7 @@ export const ChickForm: React.FC<ChickFormProps> = ({
       const chickData = {
         name: formData.name || null,
         hatch_date: formData.hatch_date,
-        weight: formData.weight ? parseFloat(formData.weight) : null,
+        weight: formData.weight ? Number(formData.weight) : null,
         notes: formData.notes || null,
         user_id: user.id
       };

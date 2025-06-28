@@ -5,13 +5,14 @@ import { AuthForm } from './components/Auth/AuthForm';
 import { Header } from './components/Layout/Header';
 import { BottomNav } from './components/Layout/BottomNav';
 import { WelcomeSection } from './components/Dashboard/WelcomeSection';
-import { BirdStats } from './components/Dashboard/BirdStats';
+import { ActiveIncubations } from './components/Dashboard/ActiveIncubations';
 import { TodoList } from './components/Dashboard/TodoList';
 import { QuickStats } from './components/Dashboard/QuickStats';
 import { BirdGrid } from './components/Birds/BirdGrid';
 import { CalendarView } from './components/Calendar/CalendarView';
 import { StatsOverview } from './components/Stats/StatsOverview';
 import { SettingsPanel } from './components/Settings/SettingsPanel';
+import { IncubationView } from './components/Incubation/IncubationView';
 import { ChicksView } from './components/Chicks/ChicksView';
 import { PedigreeView } from './components/Pedigree/PedigreeView';
 import { ProfileEditModal } from './components/Profile/ProfileEditModal';
@@ -61,7 +62,8 @@ function App() {
         return (
           <div className="animate-fade-in">
             <WelcomeSection user={user} />
-            <BirdStats />
+            <QuickStats />
+            <ActiveIncubations />
             <TodoList />
           </div>
         );
@@ -75,6 +77,12 @@ function App() {
         return (
           <div className="animate-slide-up">
             <BirdGrid />
+          </div>
+        );
+      case 'incubation':
+        return (
+          <div className="animate-slide-up">
+            <IncubationView />
           </div>
         );
       case 'chicks':
@@ -114,6 +122,8 @@ function App() {
         return t('navigation.statistics');
       case 'birds':
         return t('navigation.myBirds');
+      case 'incubation':
+        return t('navigation.incubation');
       case 'chicks':
         return t('navigation.chicks');
       case 'pedigree':

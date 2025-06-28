@@ -4,6 +4,8 @@ import { format } from 'date-fns';
 export interface BackupData {
   users: any[];
   birds: any[];
+  incubations: any[];
+  eggs: any[];
   chicks: any[];
   daily_logs: any[];
   metadata: {
@@ -71,6 +73,8 @@ export class BackupService {
       const backupData: BackupData = {
         users: [],
         birds: [],
+        incubations: [],
+        eggs: [],
         chicks: [],
         daily_logs: [],
         metadata: {
@@ -96,6 +100,20 @@ export class BackupService {
       backupData.birds = birds || [];
 
       // Fetch incubations data (clutches table)
+      const { data: incubations } = await supabase
+        .from('clutches')
+        .select('*')
+        .eq('user_id', userId);
+      backupData.incubations = incubations || [];
+
+      // Fetch eggs data
+      const { data: eggs } = await supabase
+        .from('eggs')
+        .select('*')
+        .in('clutch_id', (incubations || []).map(i => i.id));
+      backupData.eggs = eggs || [];
+
+      // Fetch chicks data
       const { data: chicks } = await supabase
         .from('chicks')
         .select('*')
@@ -121,6 +139,8 @@ export class BackupService {
       backupData.metadata.record_counts = {
         users: backupData.users.length,
         birds: backupData.birds.length,
+        incubations: backupData.incubations.length,
+        eggs: backupData.eggs.length,
         chicks: backupData.chicks.length,
         daily_logs: backupData.daily_logs.length
       };

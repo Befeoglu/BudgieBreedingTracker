@@ -1,21 +1,7 @@
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { changeLanguage, getCurrentLanguage, getSupportedLanguages } from '../lib/i18n';
 
-interface UseTranslationReturn {
-  t: (key: string, options?: any) => string;
-  tPlural: (key: string, count: number, options?: any) => string;
-  currentLanguage: string;
-  supportedLanguages: Array<{ code: string; name: string; nativeName: string }>;
-  switchLanguage: (language: string) => Promise<void>;
-  formatDate: (date: Date | string, format?: 'short' | 'long' | 'full') => string;
-  formatNumber: (number: number, options?: Intl.NumberFormatOptions) => string;
-  formatCurrency: (amount: number, currency?: string) => string;
-  formatRelativeTime: (date: Date | string) => string;
-  isRTL: boolean;
-  i18n: any;
-}
-
-export const useTranslation = (): UseTranslationReturn => {
+export const useTranslation = () => {
   const { t, i18n } = useI18nTranslation();
 
   const currentLanguage = getCurrentLanguage();

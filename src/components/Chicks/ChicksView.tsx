@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Baby, Calendar, Scale, Edit3, Trash2 } from 'lucide-react';
 import { ChickForm } from './ChickForm';
 import { supabase } from '../../lib/supabase';
@@ -7,7 +7,8 @@ import { tr } from 'date-fns/locale';
 
 interface Chick {
   id: string;
-  user_id: string; 
+  user_id: string;
+  egg_id?: string;
   name?: string;
   hatch_date: string;
   weight?: number;
@@ -110,7 +111,7 @@ export const ChicksView: React.FC = () => {
     filterChicks();
   }, [chicks, searchTerm]);
 
-  const loadChicks = useCallback(async () => {
+  const loadChicks = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -132,9 +133,9 @@ export const ChicksView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  const filterChicks = useCallback(() => {
+  const filterChicks = () => {
     let filtered = chicks;
 
     // Search filter
@@ -146,9 +147,9 @@ export const ChicksView: React.FC = () => {
     }
 
     setFilteredChicks(filtered);
-  }, [chicks, searchTerm]);
+  };
 
-  const handleSaveChick = useCallback((savedChick: Chick) => {
+  const handleSaveChick = (savedChick: Chick) => {
     if (editingChick) {
       setChicks(prev => prev.map(chick => chick.id === savedChick.id ? savedChick : chick));
     } else {
@@ -156,12 +157,12 @@ export const ChicksView: React.FC = () => {
     }
     setShowForm(false);
     setEditingChick(null);
-  }, [editingChick]);
+  };
 
-  const handleEditChick = useCallback((chick: Chick) => {
+  const handleEditChick = (chick: Chick) => {
     setEditingChick(chick);
     setShowForm(true);
-  }, []);
+  };
 
   const handleDeleteChick = async (id: string) => {
     const confirmed = window.confirm('Bu yavruyu silmek istediğinizden emin misiniz?');
