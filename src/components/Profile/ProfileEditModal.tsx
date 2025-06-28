@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Calendar, Camera } from 'lucide-react';
+import { X, Save, User, Camera } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -12,8 +12,6 @@ interface ProfileEditModalProps {
 interface UserProfile {
   first_name: string;
   last_name: string;
-  language: string;
-  theme: string;
   avatar_url: string;
 }
 
@@ -21,8 +19,6 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
   const [formData, setFormData] = useState<UserProfile>({
     first_name: '',
     last_name: '',
-    language: 'tr',
-    theme: 'light',
     avatar_url: ''
   });
   const [loading, setLoading] = useState(false);
@@ -38,7 +34,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('full_name, language, theme, avatar_url')
+        .select('full_name, avatar_url')
         .eq('id', user.id)
         .single();
 
@@ -53,8 +49,6 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
         setFormData({
           first_name: nameParts[0] || '',
           last_name: nameParts.slice(1).join(' ') || '',
-          language: data.language || 'tr',
-          theme: data.theme || 'light',
           avatar_url: data.avatar_url || ''
         });
       }
@@ -95,8 +89,6 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
         .from('users')
         .update({
           full_name: full_name,
-          language: formData.language,
-          theme: formData.theme,
           avatar_url: formData.avatar_url || null
         })
         .eq('id', user.id);
@@ -113,9 +105,9 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
     }
   };
 
-  const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
+  const showToast = (message: string, type: 'success' | 'error') => {
     const toast = document.createElement('div');
-    const bgColor = type === 'success' ? 'bg-green-500' : type === 'warning' ? 'bg-yellow-500' : 'bg-red-500';
+    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
     toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-50 animate-slide-up ${bgColor}`;
     toast.textContent = message;
     document.body.appendChild(toast);
@@ -132,7 +124,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
       <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-neutral-800">Profil Düzenle</h2>
+            <h2 className="text-xl font-bold text-neutral-800">Profil Bilgileri</h2>
             <button
               onClick={onClose}
               className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
@@ -210,76 +202,21 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
               </div>
             </div>
 
-            {/* Dil */}
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Dil
-              </label>
-              <select
-                value={formData.language}
-                onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300"
-              >
-                <option value="tr">Türkçe</option>
-                <option value="en">English</option>
-              </select>
-            </div>
-
-            {/* Tema */}
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Tema
-              </label>
-              <select
-                value={formData.theme}
-                onChange={(e) => setFormData({ ...formData, theme: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300"
-              >
-                <option value="light">Açık Tema</option>
-                <option value="dark">Koyu Tema</option>
-                <option value="auto">Sistem Ayarı</option>
-              </select>
-            </div>
-
-            {/* Kayıt Tarihi (Sadece Görüntüleme) */}
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Kayıt Tarihi
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                <input
-                  type="text"
-                  value={user?.created_at ? new Date(user.created_at).toLocaleDateString('tr-TR') : ''}
-                  disabled
-                  className="w-full pl-10 pr-4 py-3 border-2 border-neutral-200 rounded-xl bg-neutral-50 text-neutral-500"
-                />
-              </div>
-            </div>
-
-            {/* Butonlar */}
-            <div className="flex gap-4 pt-6">
+            {/* Kaydet Butonu */}
+            <div className="pt-6">
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-gradient-to-r from-primary-500 to-primary-600 text-white py-3 px-6 rounded-xl font-bold hover:from-primary-600 hover:to-primary-700 focus:ring-4 focus:ring-primary-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-primary-600 hover:to-primary-700 focus:ring-4 focus:ring-primary-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
                   <>
-                    <Save className="w-4 h-4" />
+                    <Save className="w-5 h-5" />
                     Kaydet
                   </>
                 )}
-              </button>
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-6 py-3 bg-neutral-100 text-neutral-700 rounded-xl font-bold hover:bg-neutral-200 focus:ring-4 focus:ring-neutral-200 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
-              >
-                İptal
               </button>
             </div>
           </form>
