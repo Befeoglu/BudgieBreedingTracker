@@ -12,7 +12,6 @@ import { BirdGrid } from './components/Birds/BirdGrid';
 import { CalendarView } from './components/Calendar/CalendarView';
 import { StatsOverview } from './components/Stats/StatsOverview';
 import { SettingsPanel } from './components/Settings/SettingsPanel';
-import { IncubationView } from './components/Incubation/IncubationView';
 import { ChicksView } from './components/Chicks/ChicksView';
 import { PedigreeView } from './components/Pedigree/PedigreeView';
 import { ProfileEditModal } from './components/Profile/ProfileEditModal';
@@ -79,12 +78,6 @@ function App() {
             <BirdGrid />
           </div>
         );
-      case 'incubation':
-        return (
-          <div className="animate-slide-up">
-            <IncubationView />
-          </div>
-        );
       case 'chicks':
         return (
           <div className="animate-slide-up">
@@ -122,8 +115,6 @@ function App() {
         return t('navigation.statistics');
       case 'birds':
         return t('navigation.myBirds');
-      case 'incubation':
-        return t('navigation.incubation');
       case 'chicks':
         return t('navigation.chicks');
       case 'pedigree':

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, BarChart3, Bird, Egg, Baby, GitBranch } from 'lucide-react';
+import { Home, BarChart3, Bird, Baby, GitBranch } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface BottomNavProps {
@@ -14,7 +14,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
     { id: 'dashboard', label: t('navigation.dashboard'), icon: Home },
     { id: 'stats', label: t('navigation.statistics'), icon: BarChart3 },
     { id: 'birds', label: t('navigation.myBirds'), icon: Bird },
-    { id: 'incubation', label: t('navigation.incubation'), icon: Egg },
     { id: 'chicks', label: t('navigation.chicks'), icon: Baby },
     { id: 'pedigree', label: t('navigation.pedigree'), icon: GitBranch },
   ];
