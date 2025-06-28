@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Bell, Settings, LogOut, Edit3, ChevronDown } from 'lucide-react';
+import { User, Settings, LogOut, Edit3, ChevronDown } from 'lucide-react';
 import { signOut } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { useTranslation } from '../../hooks/useTranslation';
+import { NotificationPanel } from './NotificationPanel';
 
 interface HeaderProps {
   user: any;
@@ -144,9 +145,7 @@ export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSe
           
           <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
             {/* Notifications */}
-            <button className="p-2 rounded-lg text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">
-              <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
+            <NotificationPanel />
 
             {/* Settings */}
             <button 

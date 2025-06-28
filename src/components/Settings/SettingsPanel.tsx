@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Moon, Sun, Globe, Bell, Download, Upload, Info, ChevronRight, Database, LogOut, Trash2 } from 'lucide-react';
+import { Moon, Sun, Globe, Download, Upload, Info, ChevronRight, Database, LogOut, Trash2 } from 'lucide-react';
 import { BackupPanel } from '../Backup/BackupPanel';
 import { LanguageSelector } from '../Common/LanguageSelector';
+import { NotificationSettings } from './NotificationSettings';
 import { DeleteAllDataModal } from './DeleteAllDataModal';
 import { signOut } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
@@ -34,6 +35,7 @@ export const SettingsPanel: React.FC = () => {
   });
 
   const [showBackupPanel, setShowBackupPanel] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [appVersion, setAppVersion] = useState('1.0.0');
@@ -366,6 +368,23 @@ export const SettingsPanel: React.FC = () => {
     );
   }
 
+  if (showNotificationSettings) {
+    return (
+      <div>
+        <div className="flex items-center mb-6">
+          <button
+            onClick={() => setShowNotificationSettings(false)}
+            className="mr-4 p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
+          >
+            ←
+          </button>
+          <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">Bildirim Ayarları</h2>
+        </div>
+        <NotificationSettings />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-neutral-100 dark:bg-neutral-900 transition-colors duration-300">
       <div className="max-w-4xl mx-auto p-6">
@@ -414,16 +433,22 @@ export const SettingsPanel: React.FC = () => {
 
           {/* Notifications */}
           <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 transition-colors duration-300">
-            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t('settings.notifications')}</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200">{t('settings.notifications')}</h3>
+              <button
+                onClick={() => setShowNotificationSettings(true)}
+                className="flex items-center gap-2 px-3 py-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+              >
+                <span className="text-sm font-medium">Tüm Ayarlar</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
             
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Bell className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
-                  <div>
-                    <p className="font-medium text-neutral-800 dark:text-neutral-200">{t('settings.dailyReminders')}</p>
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400">{t('settings.dailyDescription')}</p>
-                  </div>
+                <div>
+                  <p className="font-medium text-neutral-800 dark:text-neutral-200">{t('settings.dailyReminders')}</p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">{t('settings.dailyDescription')}</p>
                 </div>
                 <button
                   onClick={() => handleNotificationChange('daily', !settings.notifications.daily)}
