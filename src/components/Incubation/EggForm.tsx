@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Egg, User, Calendar } from 'lucide-react';
+import { X, Save, Egg, User, Calendar, Baby } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { DatePicker } from '../Common/DatePicker';
 
