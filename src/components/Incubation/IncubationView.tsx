@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Calendar, Egg, TrendingUp, Edit3, Trash2, Eye } from 'lucide-react';
+import { Plus, Search, Calendar, Egg, TrendingUp, Edit3, Trash2, Eye, Heart } from 'lucide-react';
 import { IncubationForm } from './IncubationForm';
 import { supabase } from '../../lib/supabase';
 import { format, differenceInDays } from 'date-fns';
@@ -11,8 +11,6 @@ interface Incubation {
   nest_name: string;
   start_date: string;
   expected_hatch_date: string;
-  egg_count?: number;
-  success_rate?: number;
   status: 'active' | 'completed' | 'failed';
   notes?: string;
   created_at: string;
@@ -30,9 +28,8 @@ const IncubationCard: React.FC<IncubationCardProps> = ({
   nest_name,
   start_date,
   expected_hatch_date,
-  egg_count = 0,
-  success_rate = 0,
   status,
+  notes,
   onEdit,
   onDelete,
   onView,
@@ -44,12 +41,13 @@ const IncubationCard: React.FC<IncubationCardProps> = ({
   
   const totalDays = differenceInDays(expected, start);
   const daysPassed = differenceInDays(today, start);
-  const progress = Math.min((daysPassed / totalDays) * 100, 100);
+  const daysRemaining = differenceInDays(expected, today);
+  const progress = Math.min(Math.max((daysPassed / totalDays) * 100, 0), 100);
 
   const statusColors = {
-    active: 'bg-blue-100 text-blue-700',
-    completed: 'bg-green-100 text-green-700',
-    failed: 'bg-red-100 text-red-700'
+    active: 'bg-blue-100 text-blue-700 border-blue-200',
+    completed: 'bg-green-100 text-green-700 border-green-200',
+    failed: 'bg-red-100 text-red-700 border-red-200'
   };
 
   const statusTexts = {
@@ -58,17 +56,32 @@ const IncubationCard: React.FC<IncubationCardProps> = ({
     failed: 'Başarısız'
   };
 
+  const getStatusMessage = () => {
+    if (status !== 'active') return statusTexts[status];
+    
+    if (daysRemaining > 0) {
+      return `${daysRemaining} gün kaldı`;
+    } else if (daysRemaining === 0) {
+      return 'Bugün çıkabilir! 🎉';
+    } else {
+      return `${Math.abs(daysRemaining)} gün gecikme`;
+    }
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden hover:shadow-md transition-all duration-300 animate-fade-in">
+    <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden hover:shadow-md transition-all duration-300 animate-fade-in group">
       <div className="p-4 sm:p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-neutral-800 text-lg mb-2 truncate">{nest_name}</h3>
-            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${statusColors[status]}`}>
-              {statusTexts[status]}
+            <h3 className="font-semibold text-neutral-800 text-lg mb-2 truncate flex items-center gap-2">
+              <Heart className="w-4 h-4 text-red-500 flex-shrink-0" />
+              {nest_name}
+            </h3>
+            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium border ${statusColors[status]}`}>
+              {getStatusMessage()}
             </span>
           </div>
-          <div className="flex items-center gap-2 ml-4">
+          <div className="flex items-center gap-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={() => onView(incubation as Incubation)}
               className="p-2 text-neutral-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
@@ -93,40 +106,59 @@ const IncubationCard: React.FC<IncubationCardProps> = ({
           </div>
         </div>
 
+        {/* İlerleme Çubuğu (sadece aktif kuluçkalar için) */}
         {status === 'active' && (
           <div className="mb-4">
             <div className="flex justify-between text-sm text-neutral-600 mb-2">
               <span>İlerleme</span>
               <span>{Math.round(progress)}% (Gün {daysPassed}/{totalDays})</span>
             </div>
-            <div className="w-full bg-neutral-200 rounded-full h-2">
+            <div className="w-full bg-neutral-200 rounded-full h-3 overflow-hidden">
               <div 
-                className="bg-gradient-to-r from-primary-500 to-primary-600 h-2 rounded-full transition-all duration-300"
+                className={`h-3 rounded-full transition-all duration-500 ${
+                  progress >= 90 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                  progress >= 70 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                  'bg-gradient-to-r from-primary-500 to-primary-600'
+                }`}
                 style={{ width: `${progress}%` }}
               />
             </div>
+            
+            {/* Kritik noktalar */}
+            {status === 'active' && (
+              <div className="flex justify-between text-xs text-neutral-500 mt-1">
+                <span>Başlangıç</span>
+                <span>16. gün</span>
+                <span>Çıkım</span>
+              </div>
+            )}
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <Egg className="w-4 h-4 text-neutral-500 mx-auto mb-1" />
-            <div className="text-sm font-medium text-neutral-800">{egg_count}</div>
-            <div className="text-xs text-neutral-500">Yumurta</div>
-          </div>
+        {/* Tarih Bilgileri */}
+        <div className="grid grid-cols-2 gap-4 text-center border-t border-neutral-100 pt-4">
           <div>
             <Calendar className="w-4 h-4 text-neutral-500 mx-auto mb-1" />
             <div className="text-sm font-medium text-neutral-800">
-              {format(expected, 'dd MMM', { locale: tr })}
+              {format(start, 'dd MMM', { locale: tr })}
             </div>
-            <div className="text-xs text-neutral-500">Tahmini</div>
+            <div className="text-xs text-neutral-500">Başlangıç</div>
           </div>
           <div>
-            <TrendingUp className="w-4 h-4 text-neutral-500 mx-auto mb-1" />
-            <div className="text-sm font-medium text-neutral-800">{success_rate}%</div>
-            <div className="text-xs text-neutral-500">Başarı</div>
+            <Egg className="w-4 h-4 text-neutral-500 mx-auto mb-1" />
+            <div className="text-sm font-medium text-neutral-800">
+              {format(expected, 'dd MMM', { locale: tr })}
+            </div>
+            <div className="text-xs text-neutral-500">Tahmini Çıkım</div>
           </div>
         </div>
+
+        {/* Notlar */}
+        {notes && (
+          <div className="mt-4 p-3 bg-neutral-50 rounded-lg">
+            <p className="text-sm text-neutral-600 line-clamp-2">{notes}</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -165,16 +197,7 @@ export const IncubationView: React.FC = () => {
         return;
       }
 
-      // Transform clutches data to incubation format
-      const transformedData = (data || []).map(clutch => ({
-        ...clutch,
-        nest_name: clutch.nest_name,
-        egg_count: 0, // Will be populated from eggs table
-        success_rate: 85, // Mock data
-        status: 'active' as const // Mock data
-      }));
-
-      setIncubations(transformedData);
+      setIncubations(data || []);
     } catch (error) {
       console.error('Error loading incubations:', error);
     } finally {
@@ -216,7 +239,8 @@ export const IncubationView: React.FC = () => {
   };
 
   const handleDeleteIncubation = async (id: string) => {
-    const confirmed = window.confirm('Bu kuluçkayı silmek istediğinizden emin misiniz?');
+    const incubation = incubations.find(inc => inc.id === id);
+    const confirmed = window.confirm(`"${incubation?.nest_name}" kuluçkasını silmek istediğinizden emin misiniz?`);
     if (!confirmed) return;
 
     try {
@@ -236,7 +260,7 @@ export const IncubationView: React.FC = () => {
   };
 
   const handleViewIncubation = (incubation: Incubation) => {
-    // Navigate to detailed view - for now just show alert
+    // Detay sayfasına yönlendirme - şimdilik alert
     alert(`${incubation.nest_name} detayları görüntüleniyor...`);
   };
 
@@ -252,6 +276,11 @@ export const IncubationView: React.FC = () => {
       toast.remove();
     }, 3000);
   };
+
+  // İstatistikler
+  const activeCount = incubations.filter(inc => inc.status === 'active').length;
+  const completedCount = incubations.filter(inc => inc.status === 'completed').length;
+  const totalCount = incubations.length;
 
   if (loading) {
     return (
@@ -269,21 +298,45 @@ export const IncubationView: React.FC = () => {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div>
-          <h2 className="text-xl font-bold text-neutral-800">Kuluçka Takibi</h2>
-          <p className="text-sm text-neutral-600 mt-1">
-            {filteredIncubations.length} kuluçka {incubations.length !== filteredIncubations.length && `(${incubations.length} toplam)`}
-          </p>
+          <h2 className="text-xl font-bold text-neutral-800 leading-tight">Kuluçka Takibi</h2>
+          <div className="flex items-center gap-4 text-sm text-neutral-600 mt-1">
+            <span>{filteredIncubations.length} kuluçka {totalCount !== filteredIncubations.length && `(${totalCount} toplam)`}</span>
+            <span>•</span>
+            <span className="text-blue-600 font-medium">{activeCount} aktif</span>
+            <span>•</span>
+            <span className="text-green-600 font-medium">{completedCount} tamamlandı</span>
+          </div>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center gap-2"
+          className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
         >
           <Plus className="w-4 h-4" />
-          Kuluçka Ekle
+          Yeni Kuluçka
         </button>
       </div>
+
+      {/* Quick Stats */}
+      {totalCount > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">{activeCount}</div>
+            <div className="text-sm text-blue-700">Aktif Kuluçka</div>
+          </div>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-green-600">{completedCount}</div>
+            <div className="text-sm text-green-700">Tamamlanan</div>
+          </div>
+          <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-neutral-600">
+              {totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0}%
+            </div>
+            <div className="text-sm text-neutral-700">Başarı Oranı</div>
+          </div>
+        </div>
+      )}
 
       {/* Search and Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 mb-6">
@@ -318,7 +371,7 @@ export const IncubationView: React.FC = () => {
       {filteredIncubations.length === 0 ? (
         <div className="text-center py-12">
           <div className="w-24 h-24 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Egg className="w-12 h-12 text-neutral-400" />
+            <Heart className="w-12 h-12 text-neutral-400" />
           </div>
           <h3 className="text-lg font-semibold text-neutral-800 mb-2">
             {searchTerm || filterStatus !== 'all'
@@ -329,15 +382,15 @@ export const IncubationView: React.FC = () => {
           <p className="text-neutral-600 mb-6">
             {searchTerm || filterStatus !== 'all'
               ? 'Farklı filtreler deneyebilir veya yeni kuluçka ekleyebilirsiniz.'
-              : 'İlk kuluçkanızı ekleyerek başlayın!'
+              : 'İlk kuluçkanızı ekleyerek üreme takibinize başlayın!'
             }
           </p>
           <button
             onClick={() => setShowForm(true)}
-            className="bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center gap-2 mx-auto"
+            className="bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center gap-2 mx-auto shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             <Plus className="w-5 h-5" />
-            İlk Kuluçkamı Ekle
+            İlk Kuluçkamı Başlat
           </button>
         </div>
       ) : (
