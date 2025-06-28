@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Mail, Calendar, Camera } from 'lucide-react';
+import { X, Save, User, Calendar, Camera } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -9,10 +9,18 @@ interface ProfileEditModalProps {
   user: SupabaseUser;
 }
 
+interface UserProfile {
+  first_name: string;
+  last_name: string;
+  language: string;
+  theme: string;
+  avatar_url: string;
+}
+
 export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, user }) => {
-  const [formData, setFormData] = useState({
-    full_name: '',
-    email: '',
+  const [formData, setFormData] = useState<UserProfile>({
+    first_name: '',
+    last_name: '',
     language: 'tr',
     theme: 'light',
     avatar_url: ''
@@ -30,16 +38,21 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('full_name, language, theme, avatar_url')
         .eq('id', user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading profile:', error);
+        return;
+      }
 
       if (data) {
+        // Parse full_name into first_name and last_name
+        const nameParts = (data.full_name || '').split(' ');
         setFormData({
-          full_name: data.full_name || '',
-          email: data.email || user.email || '',
+          first_name: nameParts[0] || '',
+          last_name: nameParts.slice(1).join(' ') || '',
           language: data.language || 'tr',
           theme: data.theme || 'light',
           avatar_url: data.avatar_url || ''
@@ -53,10 +66,12 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'E-posta adresi zorunludur';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Geçerli bir e-posta adresi girin';
+    if (!formData.first_name.trim()) {
+      newErrors.first_name = 'Ad zorunludur';
+    }
+
+    if (!formData.last_name.trim()) {
+      newErrors.last_name = 'Soyad zorunludur';
     }
 
     setErrors(newErrors);
@@ -73,10 +88,13 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
     setLoading(true);
 
     try {
+      // Combine first_name and last_name into full_name
+      const full_name = `${formData.first_name.trim()} ${formData.last_name.trim()}`.trim();
+
       const { error } = await supabase
         .from('users')
         .update({
-          full_name: formData.full_name || null,
+          full_name: full_name,
           language: formData.language,
           theme: formData.theme,
           avatar_url: formData.avatar_url || null
@@ -85,22 +103,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
 
       if (error) throw error;
 
-      // E-posta değişikliği için ayrı işlem gerekebilir
-      if (formData.email !== user.email) {
-        const { error: emailError } = await supabase.auth.updateUser({
-          email: formData.email
-        });
-        
-        if (emailError) {
-          console.warn('Email update error:', emailError);
-          showToast('Profil güncellendi, ancak e-posta değişikliği için onay gerekli', 'warning');
-        } else {
-          showToast('Profil başarıyla güncellendi!', 'success');
-        }
-      } else {
-        showToast('Profil başarıyla güncellendi!', 'success');
-      }
-
+      showToast('Profil başarıyla güncellendi!', 'success');
       onClose();
     } catch (error: any) {
       console.error('Error updating profile:', error);
@@ -165,41 +168,44 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
               <p className="text-sm text-neutral-600 mt-2">Profil fotoğrafını değiştir</p>
             </div>
 
-            {/* Ad Soyad */}
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Ad Soyad
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
+            {/* Ad ve Soyad - Yan Yana */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  Ad <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                  <input
+                    type="text"
+                    value={formData.first_name}
+                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                    className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300 ${
+                      errors.first_name ? 'border-red-300 focus:ring-red-200 focus:border-red-400' : 'border-neutral-200'
+                    }`}
+                    placeholder="Adınız"
+                  />
+                  {errors.first_name && (
+                    <p className="mt-2 text-sm text-red-600 animate-shake">{errors.first_name}</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  Soyad <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 border-2 border-neutral-200 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300"
-                  placeholder="Adınız ve soyadınız"
-                />
-              </div>
-            </div>
-
-            {/* E-posta */}
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                E-posta Adresi
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300 ${
-                    errors.email ? 'border-red-300 focus:ring-red-200 focus:border-red-400' : 'border-neutral-200'
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300 ${
+                    errors.last_name ? 'border-red-300 focus:ring-red-200 focus:border-red-400' : 'border-neutral-200'
                   }`}
-                  placeholder="ornek@email.com"
+                  placeholder="Soyadınız"
                 />
-                {errors.email && (
-                  <p className="mt-2 text-sm text-red-600 animate-shake">{errors.email}</p>
+                {errors.last_name && (
+                  <p className="mt-2 text-sm text-red-600 animate-shake">{errors.last_name}</p>
                 )}
               </div>
             </div>

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Bell, Settings, LogOut, Edit3, ChevronDown } from 'lucide-react';
 import { signOut } from '../../lib/auth';
+import { supabase } from '../../lib/supabase';
 
 interface HeaderProps {
   user: any;
@@ -9,9 +10,52 @@ interface HeaderProps {
   onSettingsClick?: () => void;
 }
 
+interface UserProfile {
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
+}
+
 export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSettingsClick }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile>({});
+  const [loading, setLoading] = useState(true);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (user) {
+      loadUserProfile();
+    }
+  }, [user]);
+
+  const loadUserProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading user profile:', error);
+        return;
+      }
+
+      if (data) {
+        // Parse full_name into first_name and last_name
+        const nameParts = (data.full_name || '').split(' ');
+        setUserProfile({
+          first_name: nameParts[0] || '',
+          last_name: nameParts.slice(1).join(' ') || '',
+          full_name: data.full_name || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -46,7 +90,46 @@ export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSe
     };
   }, []);
 
-  const userName = user?.email?.split('@')[0] || 'Kullanıcı';
+  const getDisplayName = () => {
+    if (loading) return 'Kullanıcı';
+    
+    const { first_name, last_name, full_name } = userProfile;
+    
+    // Önce full_name'i kontrol et
+    if (full_name && full_name.trim()) {
+      return full_name.trim();
+    }
+    
+    // Sonra first_name ve last_name'i birleştir
+    if (first_name || last_name) {
+      return `${first_name || ''} ${last_name || ''}`.trim();
+    }
+    
+    // Son çare olarak email'den kullanıcı adını al (@ işaretinden önceki kısım)
+    return user?.email?.split('@')[0] || 'Kullanıcı';
+  };
+
+  const getShortName = () => {
+    if (loading) return 'K';
+    
+    const { first_name, last_name, full_name } = userProfile;
+    
+    // Önce full_name'den baş harfleri al
+    if (full_name && full_name.trim()) {
+      const nameParts = full_name.trim().split(' ');
+      return nameParts.map(part => part.charAt(0).toUpperCase()).join('').slice(0, 2);
+    }
+    
+    // Sonra first_name ve last_name'den baş harfleri al
+    if (first_name || last_name) {
+      const firstInitial = first_name ? first_name.charAt(0).toUpperCase() : '';
+      const lastInitial = last_name ? last_name.charAt(0).toUpperCase() : '';
+      return (firstInitial + lastInitial) || 'K';
+    }
+    
+    // Son çare olarak email'den ilk harfi al
+    return user?.email?.charAt(0).toUpperCase() || 'K';
+  };
 
   return (
     <header className="bg-white shadow-sm border-b border-neutral-200">
@@ -86,10 +169,12 @@ export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSe
                 className="flex items-center space-x-2 p-2 rounded-lg text-neutral-700 hover:bg-neutral-100 transition-colors"
               >
                 <div className="w-6 h-6 sm:w-8 sm:h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User className="w-3 h-3 sm:w-4 sm:h-4 text-primary-600" />
+                  <span className="text-xs sm:text-sm font-bold text-primary-600">
+                    {getShortName()}
+                  </span>
                 </div>
                 <span className="hidden sm:block text-xs sm:text-sm font-medium text-neutral-700 truncate max-w-[100px]">
-                  {userName}
+                  {getDisplayName()}
                 </span>
                 <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 text-neutral-500 transition-transform ${
                   showProfileMenu ? 'rotate-180' : ''
@@ -103,10 +188,12 @@ export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSe
                   <div className="px-4 py-3 border-b border-neutral-100">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-primary-600" />
+                        <span className="text-sm font-bold text-primary-600">
+                          {getShortName()}
+                        </span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-neutral-800 truncate">{userName}</p>
+                        <p className="text-sm font-medium text-neutral-800 truncate">{getDisplayName()}</p>
                         <p className="text-xs text-neutral-500 truncate">{user?.email}</p>
                       </div>
                     </div>

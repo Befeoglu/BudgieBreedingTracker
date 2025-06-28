@@ -33,14 +33,12 @@ function App() {
     return <AuthForm />;
   }
 
-  const userName = user.email?.split('@')[0] || 'Kullanıcı';
-
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
         return (
           <div className="animate-fade-in">
-            <WelcomeSection userName={userName} />
+            <WelcomeSection user={user} />
             <QuickStats />
             <ActiveIncubations />
             <TodoList />
