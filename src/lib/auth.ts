@@ -1,5 +1,5 @@
-// Simple Authentication System
-import { localDB, User } from './localStorage';
+import { supabase } from './supabase';
+import { User } from '@supabase/supabase-js';
 
 interface AuthResult {
   user?: User;
@@ -21,8 +21,14 @@ class AuthManager {
   onAuthStateChange(callback: (user: User | null) => void): () => void {
     this.listeners.push(callback);
     
-    // Call immediately with current state
-    callback(localDB.getCurrentUser());
+    // Get current session and call immediately
+    this.getCurrentUser().then(user => callback(user));
+    
+    // Subscribe to Supabase auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const user = session?.user || null;
+      this.notifyListeners(user);
+    });
     
     // Return unsubscribe function
     return () => {
@@ -30,6 +36,7 @@ class AuthManager {
       if (index > -1) {
         this.listeners.splice(index, 1);
       }
+      subscription.unsubscribe();
     };
   }
 
@@ -48,32 +55,34 @@ class AuthManager {
         return { error: 'Şifre en az 6 karakter olmalıdır' };
       }
 
-      // Check if user already exists
-      const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      if (existingUsers.find((u: any) => u.email === email)) {
-        return { error: 'Bu e-posta adresi zaten kayıtlı' };
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { error: error.message };
       }
 
-      // Create new user
-      const newUser: User = {
-        id: Date.now().toString(36) + Math.random().toString(36).substr(2),
-        email,
-        language: 'tr',
-        theme: 'light',
-        created_at: new Date().toISOString()
-      };
+      if (data.user) {
+        // Create user profile in users table
+        const { error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            language: 'tr',
+            theme: 'light'
+          });
 
-      // Save user to users list
-      existingUsers.push({ ...newUser, password });
-      localStorage.setItem('users', JSON.stringify(existingUsers));
+        if (profileError) {
+          console.error('Error creating user profile:', profileError);
+        }
+      }
 
-      // Set as current user
-      localDB.setCurrentUser(newUser);
-      this.notifyListeners(newUser);
-
-      return { user: newUser };
-    } catch (error) {
-      return { error: 'Kayıt işlemi başarısız oldu' };
+      return { user: data.user };
+    } catch (error: any) {
+      return { error: error.message || 'Kayıt işlemi başarısız oldu' };
     }
   }
 
@@ -84,66 +93,92 @@ class AuthManager {
         return { error: 'Email ve şifre gereklidir' };
       }
 
-      // Find user
-      const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      const user = existingUsers.find((u: any) => u.email === email && u.password === password);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (!user) {
-        return { error: 'E-posta veya şifre hatalı' };
+      if (error) {
+        return { error: error.message };
       }
 
-      // Remove password from user object
-      const { password: _, ...userWithoutPassword } = user;
-      
-      // Set as current user
-      localDB.setCurrentUser(userWithoutPassword);
-      this.notifyListeners(userWithoutPassword);
-
-      return { user: userWithoutPassword };
-    } catch (error) {
-      return { error: 'Giriş işlemi başarısız oldu' };
+      return { user: data.user };
+    } catch (error: any) {
+      return { error: error.message || 'Giriş işlemi başarısız oldu' };
     }
   }
 
   async signOut(): Promise<{ error?: string }> {
     try {
-      localDB.signOut();
-      this.notifyListeners(null);
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        return { error: error.message };
+      }
       return {};
-    } catch (error) {
-      return { error: 'Çıkış işlemi başarısız oldu' };
+    } catch (error: any) {
+      return { error: error.message || 'Çıkış işlemi başarısız oldu' };
     }
   }
 
-  getCurrentUser(): User | null {
-    return localDB.getCurrentUser();
+  async getCurrentUser(): Promise<User | null> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session?.user || null;
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
   }
 
   async updateUser(updates: Partial<User>): Promise<AuthResult> {
     try {
-      const currentUser = localDB.getCurrentUser();
+      const currentUser = await this.getCurrentUser();
       if (!currentUser) {
         return { error: 'Kullanıcı oturumu bulunamadı' };
       }
 
-      const updatedUser = { ...currentUser, ...updates };
-      
-      // Update in users list
-      const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      const userIndex = existingUsers.findIndex((u: any) => u.id === currentUser.id);
-      
-      if (userIndex > -1) {
-        existingUsers[userIndex] = { ...existingUsers[userIndex], ...updates };
-        localStorage.setItem('users', JSON.stringify(existingUsers));
+      // Update auth user if email is being changed
+      if (updates.email) {
+        const { error: authError } = await supabase.auth.updateUser({
+          email: updates.email
+        });
+        
+        if (authError) {
+          return { error: authError.message };
+        }
       }
 
-      // Update current user
-      localDB.setCurrentUser(updatedUser);
-      this.notifyListeners(updatedUser);
+      // Update user profile in users table
+      const profileUpdates: any = {};
+      if (updates.user_metadata?.full_name !== undefined) {
+        profileUpdates.full_name = updates.user_metadata.full_name;
+      }
+      if (updates.user_metadata?.language !== undefined) {
+        profileUpdates.language = updates.user_metadata.language;
+      }
+      if (updates.user_metadata?.theme !== undefined) {
+        profileUpdates.theme = updates.user_metadata.theme;
+      }
+      if (updates.user_metadata?.avatar_url !== undefined) {
+        profileUpdates.avatar_url = updates.user_metadata.avatar_url;
+      }
 
+      if (Object.keys(profileUpdates).length > 0) {
+        const { error: profileError } = await supabase
+          .from('users')
+          .update(profileUpdates)
+          .eq('id', currentUser.id);
+
+        if (profileError) {
+          return { error: profileError.message };
+        }
+      }
+
+      // Get updated user
+      const updatedUser = await this.getCurrentUser();
       return { user: updatedUser };
-    } catch (error) {
-      return { error: 'Profil güncelleme başarısız oldu' };
+    } catch (error: any) {
+      return { error: error.message || 'Profil güncelleme başarısız oldu' };
     }
   }
 }

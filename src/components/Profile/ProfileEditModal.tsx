@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, User, Mail, Calendar, Camera } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface ProfileEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: any;
+  user: SupabaseUser;
 }
 
 export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, user }) => {

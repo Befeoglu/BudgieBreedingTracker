@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User } from '../lib/localStorage';
+import { User } from '@supabase/supabase-js';
 import { auth } from '../lib/auth';
 
 export const useAuth = () => {
