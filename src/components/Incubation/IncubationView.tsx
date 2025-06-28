@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Calendar, Egg, TrendingUp, Edit3, Trash2, Eye, Heart } from 'lucide-react';
 import { IncubationForm } from './IncubationForm';
+import { IncubationDetailView } from './IncubationDetailView';
 import { supabase } from '../../lib/supabase';
 import { format, differenceInDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -13,11 +14,14 @@ interface Incubation {
   expected_hatch_date: string;
   status: 'active' | 'completed' | 'failed';
   notes?: string;
+  female_bird_id?: string;
+  male_bird_id?: string;
   created_at: string;
   updated_at: string;
 }
 
 interface IncubationCardProps extends Incubation {
+  eggCount: number;
   onEdit: (incubation: Incubation) => void;
   onDelete: (id: string) => void;
   onView: (incubation: Incubation) => void;
@@ -29,7 +33,7 @@ const IncubationCard: React.FC<IncubationCardProps> = ({
   start_date,
   expected_hatch_date,
   status,
-  notes,
+  eggCount,
   onEdit,
   onDelete,
   onView,
@@ -125,18 +129,16 @@ const IncubationCard: React.FC<IncubationCardProps> = ({
             </div>
             
             {/* Kritik noktalar */}
-            {status === 'active' && (
-              <div className="flex justify-between text-xs text-neutral-500 mt-1">
-                <span>Başlangıç</span>
-                <span>16. gün</span>
-                <span>Çıkım</span>
-              </div>
-            )}
+            <div className="flex justify-between text-xs text-neutral-500 mt-1">
+              <span>Başlangıç</span>
+              <span>16. gün</span>
+              <span>Çıkım</span>
+            </div>
           </div>
         )}
 
-        {/* Tarih Bilgileri */}
-        <div className="grid grid-cols-2 gap-4 text-center border-t border-neutral-100 pt-4">
+        {/* Tarih ve Yumurta Bilgileri */}
+        <div className="grid grid-cols-3 gap-4 text-center border-t border-neutral-100 pt-4">
           <div>
             <Calendar className="w-4 h-4 text-neutral-500 mx-auto mb-1" />
             <div className="text-sm font-medium text-neutral-800">
@@ -146,19 +148,17 @@ const IncubationCard: React.FC<IncubationCardProps> = ({
           </div>
           <div>
             <Egg className="w-4 h-4 text-neutral-500 mx-auto mb-1" />
+            <div className="text-sm font-medium text-neutral-800">{eggCount}</div>
+            <div className="text-xs text-neutral-500">Yumurta</div>
+          </div>
+          <div>
+            <TrendingUp className="w-4 h-4 text-neutral-500 mx-auto mb-1" />
             <div className="text-sm font-medium text-neutral-800">
               {format(expected, 'dd MMM', { locale: tr })}
             </div>
-            <div className="text-xs text-neutral-500">Tahmini Çıkım</div>
+            <div className="text-xs text-neutral-500">Tahmini</div>
           </div>
         </div>
-
-        {/* Notlar */}
-        {notes && (
-          <div className="mt-4 p-3 bg-neutral-50 rounded-lg">
-            <p className="text-sm text-neutral-600 line-clamp-2">{notes}</p>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -167,9 +167,11 @@ const IncubationCard: React.FC<IncubationCardProps> = ({
 export const IncubationView: React.FC = () => {
   const [incubations, setIncubations] = useState<Incubation[]>([]);
   const [filteredIncubations, setFilteredIncubations] = useState<Incubation[]>([]);
+  const [eggCounts, setEggCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingIncubation, setEditingIncubation] = useState<Incubation | null>(null);
+  const [viewingIncubation, setViewingIncubation] = useState<Incubation | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'completed' | 'failed'>('all');
 
@@ -198,6 +200,23 @@ export const IncubationView: React.FC = () => {
       }
 
       setIncubations(data || []);
+      
+      // Load egg counts for each incubation
+      if (data && data.length > 0) {
+        const incubationIds = data.map(inc => inc.id);
+        const { data: eggData } = await supabase
+          .from('eggs')
+          .select('incubation_id')
+          .in('incubation_id', incubationIds);
+
+        if (eggData) {
+          const counts: Record<string, number> = {};
+          eggData.forEach(egg => {
+            counts[egg.incubation_id] = (counts[egg.incubation_id] || 0) + 1;
+          });
+          setEggCounts(counts);
+        }
+      }
     } catch (error) {
       console.error('Error loading incubations:', error);
     } finally {
@@ -238,6 +257,10 @@ export const IncubationView: React.FC = () => {
     setShowForm(true);
   };
 
+  const handleViewIncubation = (incubation: Incubation) => {
+    setViewingIncubation(incubation);
+  };
+
   const handleDeleteIncubation = async (id: string) => {
     const incubation = incubations.find(inc => inc.id === id);
     const confirmed = window.confirm(`"${incubation?.nest_name}" kuluçkasını silmek istediğinizden emin misiniz?`);
@@ -259,11 +282,6 @@ export const IncubationView: React.FC = () => {
     }
   };
 
-  const handleViewIncubation = (incubation: Incubation) => {
-    // Detay sayfasına yönlendirme - şimdilik alert
-    alert(`${incubation.nest_name} detayları görüntüleniyor...`);
-  };
-
   const showToast = (message: string, type: 'success' | 'error') => {
     const toast = document.createElement('div');
     toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-50 animate-slide-up ${
@@ -281,6 +299,7 @@ export const IncubationView: React.FC = () => {
   const activeCount = incubations.filter(inc => inc.status === 'active').length;
   const completedCount = incubations.filter(inc => inc.status === 'completed').length;
   const totalCount = incubations.length;
+  const totalEggs = Object.values(eggCounts).reduce((sum, count) => sum + count, 0);
 
   if (loading) {
     return (
@@ -306,7 +325,7 @@ export const IncubationView: React.FC = () => {
             <span>•</span>
             <span className="text-blue-600 font-medium">{activeCount} aktif</span>
             <span>•</span>
-            <span className="text-green-600 font-medium">{completedCount} tamamlandı</span>
+            <span className="text-neutral-600 font-medium">{totalEggs} yumurta</span>
           </div>
         </div>
         <button
@@ -320,7 +339,7 @@ export const IncubationView: React.FC = () => {
 
       {/* Quick Stats */}
       {totalCount > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-blue-600">{activeCount}</div>
             <div className="text-sm text-blue-700">Aktif Kuluçka</div>
@@ -328,6 +347,10 @@ export const IncubationView: React.FC = () => {
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-green-600">{completedCount}</div>
             <div className="text-sm text-green-700">Tamamlanan</div>
+          </div>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-yellow-600">{totalEggs}</div>
+            <div className="text-sm text-yellow-700">Toplam Yumurta</div>
           </div>
           <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-neutral-600">
@@ -399,6 +422,7 @@ export const IncubationView: React.FC = () => {
             <IncubationCard
               key={incubation.id}
               {...incubation}
+              eggCount={eggCounts[incubation.id] || 0}
               onEdit={handleEditIncubation}
               onDelete={handleDeleteIncubation}
               onView={handleViewIncubation}
@@ -418,6 +442,22 @@ export const IncubationView: React.FC = () => {
             setEditingIncubation(null);
           }}
           onDelete={handleDeleteIncubation}
+        />
+      )}
+
+      {/* Incubation Detail View */}
+      {viewingIncubation && (
+        <IncubationDetailView
+          incubation={viewingIncubation}
+          onClose={() => setViewingIncubation(null)}
+          onUpdate={(updatedIncubation) => {
+            setIncubations(prev => prev.map(inc => inc.id === updatedIncubation.id ? updatedIncubation : inc));
+            setViewingIncubation(updatedIncubation);
+          }}
+          onDelete={(id) => {
+            handleDeleteIncubation(id);
+            setViewingIncubation(null);
+          }}
         />
       )}
     </div>
