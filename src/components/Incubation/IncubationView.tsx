@@ -201,18 +201,18 @@ export const IncubationView: React.FC = () => {
 
       setIncubations(data || []);
       
-      // Load egg counts for each incubation
+      // Load egg counts for each incubation using correct column name
       if (data && data.length > 0) {
         const incubationIds = data.map(inc => inc.id);
         const { data: eggData } = await supabase
           .from('eggs')
-          .select('incubation_id')
-          .in('incubation_id', incubationIds);
+          .select('clutch_id')
+          .in('clutch_id', incubationIds);
 
         if (eggData) {
           const counts: Record<string, number> = {};
           eggData.forEach(egg => {
-            counts[egg.incubation_id] = (counts[egg.incubation_id] || 0) + 1;
+            counts[egg.clutch_id] = (counts[egg.clutch_id] || 0) + 1;
           });
           setEggCounts(counts);
         }

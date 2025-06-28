@@ -86,24 +86,29 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
 
   const loadBirds = async () => {
     try {
+      // Only query for birds if the IDs are valid
       if (incubation.female_bird_id) {
-        const { data: female } = await supabase
+        const { data: female, error: femaleError } = await supabase
           .from('birds')
           .select('*')
           .eq('id', incubation.female_bird_id)
           .single();
         
-        if (female) setFemaleBird(female);
+        if (!femaleError && female) {
+          setFemaleBird(female);
+        }
       }
 
       if (incubation.male_bird_id) {
-        const { data: male } = await supabase
+        const { data: male, error: maleError } = await supabase
           .from('birds')
           .select('*')
           .eq('id', incubation.male_bird_id)
           .single();
         
-        if (male) setMaleBird(male);
+        if (!maleError && male) {
+          setMaleBird(male);
+        }
       }
     } catch (error) {
       console.error('Error loading birds:', error);

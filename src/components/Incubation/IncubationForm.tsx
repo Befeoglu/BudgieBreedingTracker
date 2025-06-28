@@ -260,13 +260,7 @@ export const IncubationForm: React.FC<IncubationFormProps> = ({
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('clutches')
-        .delete()
-        .eq('id', incubation.id);
-
-      if (error) throw error;
-
+      // Just call the parent's onDelete handler instead of making direct Supabase call
       onDelete(incubation.id);
       showToast(t('incubation.incubationDeleted'), 'success');
       setShowDeleteConfirm(false);
