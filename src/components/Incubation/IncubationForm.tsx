@@ -657,5 +657,3 @@ export const IncubationForm: React.FC<IncubationFormProps> = ({
     </div>
   );
 };
-
-export { IncubationForm }
