@@ -1,5 +1,6 @@
 import React from 'react';
 import { Home, BarChart3, Bird, Egg, Baby, GitBranch } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface BottomNavProps {
   activeTab: string;
@@ -7,13 +8,15 @@ interface BottomNavProps {
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab }) => {
+  const { t } = useTranslation();
+
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'stats', label: 'Statistics', icon: BarChart3 },
-    { id: 'birds', label: 'My Birds', icon: Bird },
-    { id: 'incubation', label: 'Incubation', icon: Egg },
-    { id: 'chicks', label: 'Chicks', icon: Baby },
-    { id: 'pedigree', label: 'Pedigree', icon: GitBranch },
+    { id: 'dashboard', label: t('navigation.dashboard'), icon: Home },
+    { id: 'stats', label: t('navigation.statistics'), icon: BarChart3 },
+    { id: 'birds', label: t('navigation.myBirds'), icon: Bird },
+    { id: 'incubation', label: t('navigation.incubation'), icon: Egg },
+    { id: 'chicks', label: t('navigation.chicks'), icon: Baby },
+    { id: 'pedigree', label: t('navigation.pedigree'), icon: GitBranch },
   ];
 
   return (

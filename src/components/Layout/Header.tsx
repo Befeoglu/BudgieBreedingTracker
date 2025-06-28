@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { User, Bell, Settings, LogOut, Edit3, ChevronDown } from 'lucide-react';
 import { signOut } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface HeaderProps {
   user: any;
@@ -17,6 +18,7 @@ interface UserProfile {
 }
 
 export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSettingsClick }) => {
+  const { t } = useTranslation();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({});
   const [loading, setLoading] = useState(true);
@@ -89,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSe
   }, []);
 
   const getDisplayName = () => {
-    if (loading) return 'User';
+    if (loading) return t('common.loading');
     
     const { first_name, last_name, full_name } = userProfile;
     
@@ -198,7 +200,7 @@ export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSe
                       className="w-full flex items-center px-4 py-3 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors"
                     >
                       <Edit3 className="w-4 h-4 mr-3 text-neutral-500 dark:text-neutral-400" />
-                      Edit Profile
+                      {t('profile.editProfile')}
                     </button>
 
                     <button
@@ -206,7 +208,7 @@ export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSe
                       className="w-full flex items-center px-4 py-3 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors"
                     >
                       <Settings className="w-4 h-4 mr-3 text-neutral-500 dark:text-neutral-400" />
-                      Settings
+                      {t('navigation.settings')}
                     </button>
 
                     <div className="border-t border-neutral-100 dark:border-neutral-700 my-1"></div>
@@ -216,7 +218,7 @@ export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSe
                       className="w-full flex items-center px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
                       <LogOut className="w-4 h-4 mr-3 text-red-500 dark:text-red-400" />
-                      Sign Out
+                      {t('auth.signOut')}
                     </button>
                   </div>
                 </div>

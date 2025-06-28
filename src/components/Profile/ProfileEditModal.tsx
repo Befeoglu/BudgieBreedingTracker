@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, User, Camera } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface UserProfile {
 }
 
 export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, user }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<UserProfile>({
     first_name: '',
     last_name: '',
@@ -61,11 +63,11 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
     const newErrors: Record<string, string> = {};
 
     if (!formData.first_name.trim()) {
-      newErrors.first_name = 'Ad zorunludur';
+      newErrors.first_name = t('profile.firstNameRequired');
     }
 
     if (!formData.last_name.trim()) {
-      newErrors.last_name = 'Soyad zorunludur';
+      newErrors.last_name = t('profile.lastNameRequired');
     }
 
     setErrors(newErrors);
@@ -95,11 +97,11 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
 
       if (error) throw error;
 
-      showToast('Profil başarıyla güncellendi!', 'success');
+      showToast(t('profile.profileUpdated'), 'success');
       onClose();
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      showToast(error.message || 'Profil güncellenirken hata oluştu', 'error');
+      showToast(error.message || t('profile.profileUpdateError'), 'error');
     } finally {
       setLoading(false);
     }
@@ -124,7 +126,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
       <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-neutral-800">Profil Bilgileri</h2>
+            <h2 className="text-xl font-bold text-neutral-800">{t('profile.profileInfo')}</h2>
             <button
               onClick={onClose}
               className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
@@ -141,7 +143,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
                   {formData.avatar_url ? (
                     <img
                       src={formData.avatar_url}
-                      alt="Profil fotoğrafı"
+                      alt={t('profile.avatar')}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -157,14 +159,14 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
                   <Camera className="w-4 h-4 text-white" />
                 </button>
               </div>
-              <p className="text-sm text-neutral-600 mt-2">Profil fotoğrafını değiştir</p>
+              <p className="text-sm text-neutral-600 mt-2">{t('profile.changePhoto')}</p>
             </div>
 
             {/* Ad ve Soyad - Yan Yana */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  Ad <span className="text-red-500">*</span>
+                  {t('profile.firstName')} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
@@ -175,7 +177,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
                     className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300 ${
                       errors.first_name ? 'border-red-300 focus:ring-red-200 focus:border-red-400' : 'border-neutral-200'
                     }`}
-                    placeholder="Adınız"
+                    placeholder={t('profile.enterFirstName')}
                   />
                   {errors.first_name && (
                     <p className="mt-2 text-sm text-red-600 animate-shake">{errors.first_name}</p>
@@ -185,7 +187,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
 
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  Soyad <span className="text-red-500">*</span>
+                  {t('profile.lastName')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -194,7 +196,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
                   className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300 ${
                     errors.last_name ? 'border-red-300 focus:ring-red-200 focus:border-red-400' : 'border-neutral-200'
                   }`}
-                  placeholder="Soyadınız"
+                  placeholder={t('profile.enterLastName')}
                 />
                 {errors.last_name && (
                   <p className="mt-2 text-sm text-red-600 animate-shake">{errors.last_name}</p>
@@ -214,7 +216,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
                 ) : (
                   <>
                     <Save className="w-5 h-5" />
-                    Kaydet
+                    {t('common.save')}
                   </>
                 )}
               </button>

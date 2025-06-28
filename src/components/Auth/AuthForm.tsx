@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { signIn, signUp } from '../../lib/auth';
+import { useTranslation } from '../../hooks/useTranslation';
+import { LanguageSelector } from '../Common/LanguageSelector';
 
 // Animated Bird Logo Component
 const AnimatedBirdLogo: React.FC = () => {
@@ -86,7 +88,7 @@ const AnimatedBirdLogo: React.FC = () => {
       </svg>
       
       {/* Floating particles around bird */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0  pointer-events-none">
         <div className="absolute top-2 right-4 w-1 h-1 bg-primary-400 rounded-full animate-particle-1"></div>
         <div className="absolute top-8 left-2 w-1.5 h-1.5 bg-secondary-400 rounded-full animate-particle-2"></div>
         <div className="absolute bottom-4 right-2 w-1 h-1 bg-blue-400 rounded-full animate-particle-3"></div>
@@ -96,6 +98,7 @@ const AnimatedBirdLogo: React.FC = () => {
 };
 
 export const AuthForm: React.FC = () => {
+  const { t } = useTranslation();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -111,7 +114,7 @@ export const AuthForm: React.FC = () => {
       return true;
     }
     if (!emailRegex.test(email)) {
-      setEmailError('Geçerli bir e-posta adresi girin');
+      setEmailError(t('auth.validEmailRequired'));
       return false;
     }
     setEmailError('');
@@ -132,7 +135,7 @@ export const AuthForm: React.FC = () => {
     }
 
     if (password.length < 6) {
-      setError('Şifre en az 6 karakter olmalıdır.');
+      setError(t('auth.passwordTooShort'));
       return;
     }
 
@@ -151,7 +154,7 @@ export const AuthForm: React.FC = () => {
         setError(result.error);
       }
     } catch (err: any) {
-      setError('Bir hata oluştu. Lütfen tekrar deneyin.');
+      setError(t('errors.general'));
     } finally {
       setLoading(false);
     }
@@ -162,19 +165,21 @@ export const AuthForm: React.FC = () => {
       <div className="w-full max-w-md">
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-6 sm:p-8 animate-slide-up">
           
+          {/* Language Selector */}
+          <div className="absolute top-4 right-4">
+            <LanguageSelector variant="toggle" />
+          </div>
+          
           {/* Animated Bird Logo */}
           <AnimatedBirdLogo />
           
           {/* Welcome Text */}
           <div className="text-center mb-6 sm:mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-3 font-poppins leading-tight">
-              {isSignUp ? 'Hoş Geldiniz!' : 'Tekrar Hoş Geldiniz!'}
+              {isSignUp ? t('auth.welcome') : t('auth.welcomeBack')}
             </h1>
             <p className="text-gray-600 text-base sm:text-lg font-medium leading-relaxed">
-              {isSignUp 
-                ? 'BudgieBreedingTracker\'a katılın' 
-                : 'Muhabbet kuşu üretim takibinize devam edin'
-              }
+              {isSignUp ? t('auth.signupSubtitle') : t('auth.loginSubtitle')}
             </p>
           </div>
 
@@ -182,7 +187,7 @@ export const AuthForm: React.FC = () => {
             {/* Email Input */}
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-semibold text-gray-700 font-poppins">
-                E-posta Adresi
+                {t('auth.email')}
               </label>
               <div className="relative">
                 <input
@@ -194,7 +199,7 @@ export const AuthForm: React.FC = () => {
                   className={`w-full px-4 py-3 sm:py-4 bg-white/70 border-2 rounded-2xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300 text-gray-800 placeholder-gray-500 font-medium transform focus:scale-[1.02] text-sm sm:text-base ${
                     emailError ? 'border-red-300 focus:ring-red-200 focus:border-red-400' : 'border-gray-200'
                   }`}
-                  placeholder="ornek@email.com"
+                  placeholder={t('auth.emailPlaceholder')}
                 />
                 {emailError && (
                   <p className="mt-2 text-sm text-red-600 font-medium animate-shake leading-tight">{emailError}</p>
@@ -205,7 +210,7 @@ export const AuthForm: React.FC = () => {
             {/* Password Input */}
             <div className="space-y-2">
               <label htmlFor="password" className="block text-sm font-semibold text-gray-700 font-poppins">
-                Şifre {isSignUp && <span className="text-gray-500 text-xs">(en az 6 karakter)</span>}
+                {t('auth.password')} {isSignUp && <span className="text-gray-500 text-xs">{t('auth.passwordMinLength')}</span>}
               </label>
               <div className="relative">
                 <input
@@ -216,7 +221,7 @@ export const AuthForm: React.FC = () => {
                   required
                   minLength={6}
                   className="w-full px-4 py-3 sm:py-4 bg-white/70 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300 text-gray-800 placeholder-gray-500 font-medium pr-12 transform focus:scale-[1.02] text-sm sm:text-base"
-                  placeholder="••••••••"
+                  placeholder={t('auth.passwordPlaceholder')}
                 />
                 <button
                   type="button"
@@ -244,10 +249,10 @@ export const AuthForm: React.FC = () => {
               {loading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Yükleniyor...</span>
+                  <span>{t('common.loading')}</span>
                 </div>
               ) : (
-                isSignUp ? 'Hesap Oluştur' : 'Giriş Yap'
+                isSignUp ? t('auth.createAccount') : t('auth.signIn')
               )}
             </button>
           </form>
@@ -263,8 +268,8 @@ export const AuthForm: React.FC = () => {
                 className="text-gray-600 hover:text-gray-800 font-semibold transition-colors text-sm sm:text-base leading-tight"
               >
                 {isSignUp 
-                  ? 'Zaten hesabınız var mı? Giriş yapın' 
-                  : 'Hesabınız yok mu? Kayıt olun'
+                  ? t('auth.alreadyHaveAccount')
+                  : t('auth.dontHaveAccount')
                 }
               </button>
             </div>

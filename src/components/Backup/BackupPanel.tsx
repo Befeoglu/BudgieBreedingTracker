@@ -4,7 +4,7 @@ import {
   Upload, 
   Clock, 
   CheckCircle, 
-  AlertCircle, 
+  AlertTriangle, 
   XCircle,
   RefreshCw,
   Calendar,
@@ -16,6 +16,7 @@ import {
 import { backupService, BackupData } from '../../services/backupService';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface BackupPanelProps {
   language: 'tr' | 'en';
@@ -23,6 +24,7 @@ interface BackupPanelProps {
 }
 
 export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => {
+  const { t } = useTranslation();
   const [backups, setBackups] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [backupInProgress, setBackupInProgress] = useState(false);
@@ -32,107 +34,6 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
   const [selectedBackup, setSelectedBackup] = useState<any>(null);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [conflictResolution, setConflictResolution] = useState<'local_wins' | 'remote_wins' | 'merge'>('remote_wins');
-
-  const texts = {
-    tr: {
-      title: 'Yedekleme & Geri Yükleme',
-      manualBackup: 'Manuel Yedekleme',
-      autoBackup: 'Otomatik Yedekleme',
-      backupNow: 'Şimdi Yedekle',
-      restore: 'Geri Yükle',
-      export: 'JSON İndir',
-      backupHistory: 'Yedekleme Geçmişi',
-      noBackups: 'Henüz yedekleme yapılmamış',
-      backupType: 'Tür',
-      backupDate: 'Tarih',
-      recordCount: 'Kayıt Sayısı',
-      size: 'Boyut',
-      status: 'Durum',
-      actions: 'İşlemler',
-      automatic: 'Otomatik',
-      manual: 'Manuel',
-      completed: 'Tamamlandı',
-      failed: 'Başarısız',
-      pending: 'Bekliyor',
-      enableAutoBackup: 'Otomatik yedeklemeyi etkinleştir',
-      backupInterval: 'Yedekleme aralığı',
-      hourly: 'Saatlik',
-      daily: 'Günlük',
-      weekly: 'Haftalık',
-      backupInProgress: 'Yedekleme devam ediyor...',
-      restoreInProgress: 'Geri yükleme devam ediyor...',
-      backupSuccess: 'Yedekleme başarıyla tamamlandı',
-      backupFailed: 'Yedekleme başarısız oldu',
-      restoreSuccess: 'Geri yükleme başarıyla tamamlandı',
-      restoreFailed: 'Geri yükleme başarısız oldu',
-      confirmRestore: 'Geri Yükleme Onayı',
-      restoreWarning: 'Bu işlem mevcut verilerinizi değiştirebilir. Devam etmek istediğinizden emin misiniz?',
-      conflictResolution: 'Çakışma Çözümü',
-      localWins: 'Yerel Veri Kazansın',
-      remoteWins: 'Yedek Veri Kazansın',
-      merge: 'Birleştir',
-      cancel: 'İptal',
-      confirm: 'Onayla',
-      backupDetails: 'Yedek Detayları',
-      totalRecords: 'Toplam Kayıt',
-      users: 'Kullanıcılar',
-      birds: 'Kuşlar',
-      incubations: 'Kuluçkalar',
-      eggs: 'Yumurtalar',
-      chicks: 'Yavrular',
-      dailyLogs: 'Günlük Kayıtlar'
-    },
-    en: {
-      title: 'Backup & Restore',
-      manualBackup: 'Manual Backup',
-      autoBackup: 'Automatic Backup',
-      backupNow: 'Backup Now',
-      restore: 'Restore',
-      export: 'Download JSON',
-      backupHistory: 'Backup History',
-      noBackups: 'No backups created yet',
-      backupType: 'Type',
-      backupDate: 'Date',
-      recordCount: 'Record Count',
-      size: 'Size',
-      status: 'Status',
-      actions: 'Actions',
-      automatic: 'Automatic',
-      manual: 'Manual',
-      completed: 'Completed',
-      failed: 'Failed',
-      pending: 'Pending',
-      enableAutoBackup: 'Enable automatic backup',
-      backupInterval: 'Backup interval',
-      hourly: 'Hourly',
-      daily: 'Daily',
-      weekly: 'Weekly',
-      backupInProgress: 'Backup in progress...',
-      restoreInProgress: 'Restore in progress...',
-      backupSuccess: 'Backup completed successfully',
-      backupFailed: 'Backup failed',
-      restoreSuccess: 'Restore completed successfully',
-      restoreFailed: 'Restore failed',
-      confirmRestore: 'Confirm Restore',
-      restoreWarning: 'This operation may modify your current data. Are you sure you want to continue?',
-      conflictResolution: 'Conflict Resolution',
-      localWins: 'Local Data Wins',
-      remoteWins: 'Backup Data Wins',
-      merge: 'Merge',
-      cancel: 'Cancel',
-      confirm: 'Confirm',
-      backupDetails: 'Backup Details',
-      totalRecords: 'Total Records',
-      users: 'Users',
-      birds: 'Birds',
-      incubations: 'Incubations',
-      eggs: 'Eggs',
-      chicks: 'Chicks',
-      dailyLogs: 'Daily Logs'
-    }
-  };
-
-  const t = texts[language];
 
   useEffect(() => {
     loadBackups();
@@ -153,10 +54,10 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
     setBackupInProgress(false);
     
     if (result.success) {
-      alert(t.backupSuccess);
+      alert(t('backup.backupSuccess'));
       loadBackups();
     } else {
-      alert(`${t.backupFailed}: ${result.error}`);
+      alert(`${t('backup.backupFailed')}: ${result.error}`);
     }
   };
 
@@ -173,9 +74,9 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
     setSelectedBackup(null);
     
     if (result.success) {
-      alert(t.restoreSuccess);
+      alert(t('backup.restoreSuccess'));
     } else {
-      alert(`${t.restoreFailed}: ${result.error}`);
+      alert(`${t('backup.restoreFailed')}: ${result.error}`);
     }
   };
 
@@ -213,7 +114,7 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
       case 'pending':
         return <Clock className="w-4 h-4 text-yellow-500" />;
       default:
-        return <AlertCircle className="w-4 h-4 text-gray-500" />;
+        return <AlertTriangle className="w-4 h-4 text-gray-500" />;
     }
   };
 
@@ -233,14 +134,14 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
     <div className={`rounded-xl shadow-sm border p-6 ${themeClasses}`}>
       <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
         <Database className="w-6 h-6" />
-        {t.title}
+        {t('backup.backupRestore')}
       </h2>
 
       {/* Manual Backup Section */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Download className="w-5 h-5" />
-          {t.manualBackup}
+          {t('backup.manualBackup')}
         </h3>
         
         <div className="flex gap-4">
@@ -252,12 +153,12 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
             {backupInProgress ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                {t.backupInProgress}
+                {t('backup.backupInProgress')}
               </>
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                {t.backupNow}
+                {t('backup.backupNow')}
               </>
             )}
           </button>
@@ -268,12 +169,12 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Clock className="w-5 h-5" />
-          {t.autoBackup}
+          {t('backup.automaticBackup')}
         </h3>
         
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="font-medium">{t.enableAutoBackup}</span>
+            <span className="font-medium">{t('backup.enableAutoBackup')}</span>
             <button
               onClick={toggleAutoBackup}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
@@ -290,7 +191,7 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
           
           {autoBackupEnabled && (
             <div>
-              <label className="block text-sm font-medium mb-2">{t.backupInterval}</label>
+              <label className="block text-sm font-medium mb-2">{t('backup.backupInterval')}</label>
               <select
                 value={autoBackupInterval}
                 onChange={(e) => handleIntervalChange(Number(e.target.value))}
@@ -300,9 +201,9 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
                     : 'bg-white border-gray-300 text-gray-800'
                 }`}
               >
-                <option value={1}>{t.hourly}</option>
-                <option value={24}>{t.daily}</option>
-                <option value={168}>{t.weekly}</option>
+                <option value={1}>{t('settings.hourly')}</option>
+                <option value={24}>{t('settings.daily')}</option>
+                <option value={168}>{t('settings.weekly')}</option>
               </select>
             </div>
           )}
@@ -313,7 +214,7 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
       <div>
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <FileText className="w-5 h-5" />
-          {t.backupHistory}
+          {t('backup.backupHistory')}
         </h3>
         
         {loading ? (
@@ -323,19 +224,19 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
         ) : backups.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Cloud className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>{t.noBackups}</p>
+            <p>{t('backup.noBackups')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className={`border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
-                  <th className="text-left py-3 px-4 font-medium">{t.backupType}</th>
-                  <th className="text-left py-3 px-4 font-medium">{t.backupDate}</th>
-                  <th className="text-left py-3 px-4 font-medium">{t.recordCount}</th>
-                  <th className="text-left py-3 px-4 font-medium">{t.size}</th>
-                  <th className="text-left py-3 px-4 font-medium">{t.status}</th>
-                  <th className="text-left py-3 px-4 font-medium">{t.actions}</th>
+                  <th className="text-left py-3 px-4 font-medium">{t('backup.backupType')}</th>
+                  <th className="text-left py-3 px-4 font-medium">{t('backup.backupDate')}</th>
+                  <th className="text-left py-3 px-4 font-medium">{t('backup.recordCount')}</th>
+                  <th className="text-left py-3 px-4 font-medium">{t('backup.size')}</th>
+                  <th className="text-left py-3 px-4 font-medium">{t('backup.status')}</th>
+                  <th className="text-left py-3 px-4 font-medium">{t('backup.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -347,11 +248,11 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
                           ? 'bg-blue-100 text-blue-800' 
                           : 'bg-green-100 text-green-800'
                       }`}>
-                        {backup.backup_type === 'automatic' ? t.automatic : t.manual}
+                        {backup.backup_type === 'automatic' ? t('backup.automatic') : t('backup.manual')}
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      {format(new Date(backup.backup_date), 'dd MMM yyyy HH:mm', { locale: tr })}
+                      {format(new Date(backup.backup_date), 'dd MMM yyyy HH:mm', { locale: language === 'tr' ? tr : undefined })}
                     </td>
                     <td className="py-3 px-4">
                       {Object.values(backup.record_counts || {}).reduce((sum: number, count: any) => sum + count, 0)}
@@ -363,8 +264,8 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
                       <div className="flex items-center gap-2">
                         {getStatusIcon(backup.status)}
                         <span className="text-sm">
-                          {backup.status === 'completed' ? t.completed : 
-                           backup.status === 'failed' ? t.failed : t.pending}
+                          {backup.status === 'completed' ? t('backup.completed') : 
+                           backup.status === 'failed' ? t('backup.failed') : t('backup.pending')}
                         </span>
                       </div>
                     </td>
@@ -377,14 +278,14 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
                           }}
                           disabled={restoreInProgress}
                           className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-50"
-                          title={t.restore}
+                          title={t('backup.restore')}
                         >
                           <Upload className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleExport(backup.id)}
                           className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                          title={t.export}
+                          title={t('backup.exportJson')}
                         >
                           <Download className="w-4 h-4" />
                         </button>
@@ -402,48 +303,48 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
       {showRestoreConfirm && selectedBackup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className={`rounded-xl p-6 max-w-md w-full ${themeClasses}`}>
-            <h3 className="text-lg font-bold mb-4">{t.confirmRestore}</h3>
+            <h3 className="text-lg font-bold mb-4">{t('backup.confirmRestore')}</h3>
             
             <div className="mb-4">
-              <h4 className="font-medium mb-2">{t.backupDetails}</h4>
+              <h4 className="font-medium mb-2">{t('backup.backupDetails')}</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span>{t.backupDate}:</span>
-                  <span>{format(new Date(selectedBackup.backup_date), 'dd MMM yyyy HH:mm', { locale: tr })}</span>
+                  <span>{t('backup.backupDate')}:</span>
+                  <span>{format(new Date(selectedBackup.backup_date), 'dd MMM yyyy HH:mm', { locale: language === 'tr' ? tr : undefined })}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>{t.totalRecords}:</span>
+                  <span>{t('backup.totalRecords')}:</span>
                   <span>{Object.values(selectedBackup.record_counts || {}).reduce((sum: number, count: any) => sum + count, 0)}</span>
                 </div>
                 {selectedBackup.record_counts && (
                   <div className="mt-2 space-y-1">
                     {selectedBackup.record_counts.birds > 0 && (
                       <div className="flex justify-between text-xs">
-                        <span>{t.birds}:</span>
+                        <span>{t('backup.birds')}:</span>
                         <span>{selectedBackup.record_counts.birds}</span>
                       </div>
                     )}
                     {selectedBackup.record_counts.incubations > 0 && (
                       <div className="flex justify-between text-xs">
-                        <span>{t.incubations}:</span>
+                        <span>{t('backup.incubations')}:</span>
                         <span>{selectedBackup.record_counts.incubations}</span>
                       </div>
                     )}
                     {selectedBackup.record_counts.eggs > 0 && (
                       <div className="flex justify-between text-xs">
-                        <span>{t.eggs}:</span>
+                        <span>{t('backup.eggs')}:</span>
                         <span>{selectedBackup.record_counts.eggs}</span>
                       </div>
                     )}
                     {selectedBackup.record_counts.chicks > 0 && (
                       <div className="flex justify-between text-xs">
-                        <span>{t.chicks}:</span>
+                        <span>{t('backup.chicks')}:</span>
                         <span>{selectedBackup.record_counts.chicks}</span>
                       </div>
                     )}
                     {selectedBackup.record_counts.daily_logs > 0 && (
                       <div className="flex justify-between text-xs">
-                        <span>{t.dailyLogs}:</span>
+                        <span>{t('backup.dailyLogs')}:</span>
                         <span>{selectedBackup.record_counts.daily_logs}</span>
                       </div>
                     )}
@@ -453,7 +354,7 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">{t.conflictResolution}</label>
+              <label className="block text-sm font-medium mb-2">{t('backup.conflictResolution')}</label>
               <select
                 value={conflictResolution}
                 onChange={(e) => setConflictResolution(e.target.value as any)}
@@ -463,13 +364,13 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
                     : 'bg-white border-gray-300 text-gray-800'
                 }`}
               >
-                <option value="remote_wins">{t.remoteWins}</option>
-                <option value="local_wins">{t.localWins}</option>
-                <option value="merge">{t.merge}</option>
+                <option value="remote_wins">{t('backup.remoteWins')}</option>
+                <option value="local_wins">{t('backup.localWins')}</option>
+                <option value="merge">{t('backup.merge')}</option>
               </select>
             </div>
 
-            <p className="text-sm text-yellow-600 mb-6">{t.restoreWarning}</p>
+            <p className="text-sm text-yellow-600 mb-6">{t('backup.restoreWarning')}</p>
 
             <div className="flex gap-3">
               <button
@@ -479,7 +380,7 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
                 }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                {t.cancel}
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleRestore}
@@ -489,7 +390,7 @@ export const BackupPanel: React.FC<BackupPanelProps> = ({ language, theme }) => 
                 {restoreInProgress ? (
                   <RefreshCw className="w-4 h-4 animate-spin mx-auto" />
                 ) : (
-                  t.confirm
+                  t('common.confirm')
                 )}
               </button>
             </div>

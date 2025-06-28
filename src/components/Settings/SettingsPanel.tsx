@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Moon, Sun, Globe, Bell, Download, Upload, Info, ChevronRight, Database, LogOut } from 'lucide-react';
 import { BackupPanel } from '../Backup/BackupPanel';
+import { LanguageSelector } from '../Common/LanguageSelector';
 import { signOut } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface SettingsState {
   darkMode: boolean;
-  language: 'tr' | 'en';
   notifications: {
     daily: boolean;
     critical: boolean;
@@ -18,9 +19,9 @@ interface SettingsState {
 }
 
 export const SettingsPanel: React.FC = () => {
+  const { t, currentLanguage, switchLanguage } = useTranslation();
   const [settings, setSettings] = useState<SettingsState>({
     darkMode: false,
-    language: 'tr',
     notifications: {
       daily: true,
       critical: true,
@@ -46,7 +47,7 @@ export const SettingsPanel: React.FC = () => {
       await loadAppVersion();
     } catch (error) {
       console.error('Error initializing settings:', error);
-      showToast('Settings loading error', 'error');
+      showToast(t('settings.settingsUpdateError'), 'error');
     } finally {
       setLoading(false);
     }
@@ -72,7 +73,6 @@ export const SettingsPanel: React.FC = () => {
         const isDarkMode = data.theme === 'dark';
         setSettings(prev => ({
           ...prev,
-          language: data.language || 'tr',
           darkMode: isDarkMode
         }));
 
@@ -154,18 +154,18 @@ export const SettingsPanel: React.FC = () => {
 
       if (error) {
         console.error('Error updating user settings:', error);
-        showToast(settings.language === 'tr' ? 'Ayarlar güncellenirken hata oluştu' : 'Error updating settings', 'error');
+        showToast(t('settings.settingsUpdateError'), 'error');
       } else {
-        showToast(settings.language === 'tr' ? 'Ayarlar başarıyla güncellendi' : 'Settings updated successfully', 'success');
+        showToast(t('settings.settingsUpdated'), 'success');
       }
     } catch (error) {
       console.error('Error updating user settings:', error);
-      showToast(settings.language === 'tr' ? 'Ayarlar güncellenirken hata oluştu' : 'Error updating settings', 'error');
+      showToast(t('settings.settingsUpdateError'), 'error');
     }
   };
 
-  const handleLanguageChange = async (newLanguage: 'tr' | 'en') => {
-    setSettings(prev => ({ ...prev, language: newLanguage }));
+  const handleLanguageChange = async (newLanguage: string) => {
+    await switchLanguage(newLanguage);
     await updateUserSettings({ language: newLanguage });
     persistLocale(newLanguage);
   };
@@ -216,11 +216,7 @@ export const SettingsPanel: React.FC = () => {
   };
 
   const handleSignOut = async () => {
-    const confirmMessage = settings.language === 'tr' 
-      ? 'Hesaptan çıkış yapmak istediğinizden emin misiniz?' 
-      : 'Are you sure you want to sign out?';
-    
-    const confirmed = window.confirm(confirmMessage);
+    const confirmed = window.confirm(t('settings.confirmSignOut'));
     if (!confirmed) return;
 
     setLoading(true);
@@ -228,7 +224,7 @@ export const SettingsPanel: React.FC = () => {
       await signOut();
     } catch (error) {
       console.error('Error signing out:', error);
-      showToast(settings.language === 'tr' ? 'Çıkış yaparken hata oluştu' : 'Error signing out', 'error');
+      showToast(t('settings.signOutError'), 'error');
     } finally {
       setLoading(false);
     }
@@ -246,22 +242,22 @@ export const SettingsPanel: React.FC = () => {
 
   const triggerAutoBackup = () => {
     console.log('Auto backup triggered');
-    showToast(settings.language === 'tr' ? 'Otomatik yedekleme başlatıldı' : 'Auto backup started', 'info');
+    showToast(t('settings.autoBackupStarted'), 'info');
   };
 
   const stopAutoBackup = () => {
     console.log('Auto backup stopped');
-    showToast(settings.language === 'tr' ? 'Otomatik yedekleme durduruldu' : 'Auto backup stopped', 'info');
+    showToast(t('settings.autoBackupStopped'), 'info');
   };
 
   const triggerSync = () => {
     console.log('Sync triggered');
-    showToast(settings.language === 'tr' ? 'Senkronizasyon başlatıldı' : 'Synchronization started', 'info');
+    showToast(t('settings.syncStarted'), 'info');
   };
 
   const triggerBackup = () => {
     console.log('Manual backup triggered');
-    showToast(settings.language === 'tr' ? 'Manuel yedekleme başlatıldı' : 'Manual backup started', 'info');
+    showToast(t('settings.manualBackupStarted'), 'info');
   };
 
   const handleExportData = () => {
@@ -284,10 +280,10 @@ export const SettingsPanel: React.FC = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      showToast(settings.language === 'tr' ? 'Veriler başarıyla dışa aktarıldı' : 'Data exported successfully', 'success');
+      showToast(t('settings.dataExported'), 'success');
     } catch (error) {
       console.error('Export error:', error);
-      showToast(settings.language === 'tr' ? 'Dışa aktarma sırasında hata oluştu' : 'Export error occurred', 'error');
+      showToast(t('settings.exportError'), 'error');
     }
   };
 
@@ -305,12 +301,12 @@ export const SettingsPanel: React.FC = () => {
               const data = JSON.parse(e.target?.result as string);
               if (data.settings) {
                 setSettings(data.settings);
-                showToast(settings.language === 'tr' ? 'Veriler başarıyla içe aktarıldı' : 'Data imported successfully', 'success');
+                showToast(t('settings.dataImported'), 'success');
               } else {
-                showToast(settings.language === 'tr' ? 'Geçersiz dosya formatı' : 'Invalid file format', 'error');
+                showToast(t('settings.invalidFileFormat'), 'error');
               }
             } catch (error) {
-              showToast(settings.language === 'tr' ? 'Dosya okuma hatası' : 'File reading error', 'error');
+              showToast(t('settings.fileReadError'), 'error');
             }
           };
           reader.readAsText(file);
@@ -319,14 +315,14 @@ export const SettingsPanel: React.FC = () => {
       input.click();
     } catch (error) {
       console.error('Import error:', error);
-      showToast(settings.language === 'tr' ? 'İçe aktarma sırasında hata oluştu' : 'Import error occurred', 'error');
+      showToast(t('settings.importError'), 'error');
     }
   };
 
   const handleFeedbackSend = () => {
     const subject = encodeURIComponent('BudgieBreedingTracker Feedback');
     const body = encodeURIComponent(
-      settings.language === 'tr' 
+      currentLanguage === 'tr' 
         ? `Merhaba,\n\nBudgieBreedingTracker uygulaması hakkında geri bildirimim:\n\n[Geri bildiriminizi buraya yazın]\n\nTeşekkürler.`
         : `Hello,\n\nMy feedback about BudgieBreedingTracker app:\n\n[Write your feedback here]\n\nThank you.`
     );
@@ -351,89 +347,6 @@ export const SettingsPanel: React.FC = () => {
     }, 4000);
   };
 
-  const texts = {
-    tr: {
-      title: 'Ayarlar',
-      appearance: 'Görünüm & Dil',
-      theme: 'Tema',
-      themeDesc: 'Karanlık/Aydınlık mod',
-      language: 'Dil',
-      languageDesc: 'Uygulama dili',
-      notifications: 'Bildirimler',
-      dailyReminders: 'Günlük Hatırlatmalar',
-      dailyDesc: 'Rutin görevler için',
-      criticalAlerts: 'Kritik Uyarılar',
-      criticalDesc: 'Önemli gelişmeler için',
-      hatchReminders: 'Çıkım Hatırlatmaları',
-      hatchDesc: 'Tahmini tarihler için',
-      backup: 'Yedekleme',
-      autoBackup: 'Otomatik Yedekleme',
-      backupDesc: 'Verilerinizi güvende tutun',
-      backupFreq: 'Yedekleme Sıklığı',
-      hourly: 'Saatlik',
-      daily: 'Günlük',
-      weekly: 'Haftalık',
-      exportData: 'Verileri İndir',
-      importData: 'Verileri Yükle',
-      backupRestore: 'Yedekleme & Geri Yükleme',
-      backupNow: 'Şimdi Yedekle',
-      sync: 'Senkronizasyon',
-      autoSync: 'Otomatik Senkronizasyon',
-      syncDesc: 'Cihazlar arası veri senkronizasyonu',
-      account: 'Hesap',
-      signOut: 'Hesaptan Çıkış Yap',
-      signOutDesc: 'Oturumu sonlandır',
-      about: 'Hakkında',
-      version: 'Sürüm',
-      support: 'Destek & İletişim',
-      privacy: 'Gizlilik Politikası',
-      terms: 'Kullanım Şartları',
-      feedback: 'Geri Bildirim Gönder',
-      description: 'BudgieBreedingTracker, muhabbet kuşu yetiştiricileri için geliştirilmiş profesyonel bir takip sistemidir.'
-    },
-    en: {
-      title: 'Settings',
-      appearance: 'Appearance & Language',
-      theme: 'Theme',
-      themeDesc: 'Dark/Light mode',
-      language: 'Language',
-      languageDesc: 'Application language',
-      notifications: 'Notifications',
-      dailyReminders: 'Daily Reminders',
-      dailyDesc: 'For routine tasks',
-      criticalAlerts: 'Critical Alerts',
-      criticalDesc: 'For important developments',
-      hatchReminders: 'Hatch Reminders',
-      hatchDesc: 'For estimated dates',
-      backup: 'Backup',
-      autoBackup: 'Automatic Backup',
-      backupDesc: 'Keep your data safe',
-      backupFreq: 'Backup Frequency',
-      hourly: 'Hourly',
-      daily: 'Daily',
-      weekly: 'Weekly',
-      exportData: 'Export Data',
-      importData: 'Import Data',
-      backupRestore: 'Backup & Restore',
-      backupNow: 'Backup Now',
-      sync: 'Synchronization',
-      autoSync: 'Auto Synchronization',
-      syncDesc: 'Cross-device data synchronization',
-      account: 'Account',
-      signOut: 'Sign Out',
-      signOutDesc: 'End session',
-      about: 'About',
-      version: 'Version',
-      support: 'Support & Contact',
-      privacy: 'Privacy Policy',
-      terms: 'Terms of Service',
-      feedback: 'Send Feedback',
-      description: 'BudgieBreedingTracker is a professional tracking system developed for budgerigar breeders.'
-    }
-  };
-
-  const t = texts[settings.language];
-
   if (showBackupPanel) {
     return (
       <div>
@@ -444,9 +357,9 @@ export const SettingsPanel: React.FC = () => {
           >
             ←
           </button>
-          <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">{t.backupRestore}</h2>
+          <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">{t('settings.backupRestore')}</h2>
         </div>
-        <BackupPanel language={settings.language} theme={settings.darkMode ? 'dark' : 'light'} />
+        <BackupPanel language={currentLanguage as 'tr' | 'en'} theme={settings.darkMode ? 'dark' : 'light'} />
       </div>
     );
   }
@@ -454,20 +367,20 @@ export const SettingsPanel: React.FC = () => {
   return (
     <div className="min-h-screen bg-neutral-100 dark:bg-neutral-900 transition-colors duration-300">
       <div className="max-w-4xl mx-auto p-6">
-        <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200 mb-6">{t.title}</h2>
+        <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200 mb-6">{t('settings.settings')}</h2>
         
         <div className="space-y-6">
           {/* Theme & Language */}
           <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 transition-colors duration-300">
-            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t.appearance}</h3>
+            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t('settings.appearance')}</h3>
             
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {settings.darkMode ? <Moon className="w-5 h-5 text-neutral-600 dark:text-neutral-400" /> : <Sun className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />}
                   <div>
-                    <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.theme}</p>
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.themeDesc}</p>
+                    <p className="font-medium text-neutral-800 dark:text-neutral-200">{t('settings.theme')}</p>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">{t('settings.themeDescription')}</p>
                   </div>
                 </div>
                 <button
@@ -488,33 +401,26 @@ export const SettingsPanel: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <Globe className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
                   <div>
-                    <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.language}</p>
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.languageDesc}</p>
+                    <p className="font-medium text-neutral-800 dark:text-neutral-200">{t('settings.language')}</p>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">{t('settings.languageDescription')}</p>
                   </div>
                 </div>
-                <select
-                  value={settings.language}
-                  onChange={(e) => handleLanguageChange(e.target.value as 'tr' | 'en')}
-                  className="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-neutral-800 dark:text-neutral-200"
-                >
-                  <option value="tr">Türkçe</option>
-                  <option value="en">English</option>
-                </select>
+                <LanguageSelector variant="dropdown" showLabel={false} />
               </div>
             </div>
           </div>
 
           {/* Notifications */}
           <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 transition-colors duration-300">
-            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t.notifications}</h3>
+            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t('settings.notifications')}</h3>
             
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Bell className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
                   <div>
-                    <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.dailyReminders}</p>
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.dailyDesc}</p>
+                    <p className="font-medium text-neutral-800 dark:text-neutral-200">{t('settings.dailyReminders')}</p>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">{t('settings.dailyDescription')}</p>
                   </div>
                 </div>
                 <button
@@ -533,8 +439,8 @@ export const SettingsPanel: React.FC = () => {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.criticalAlerts}</p>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.criticalDesc}</p>
+                  <p className="font-medium text-neutral-800 dark:text-neutral-200">{t('settings.criticalAlerts')}</p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">{t('settings.criticalDescription')}</p>
                 </div>
                 <button
                   onClick={() => handleNotificationChange('critical', !settings.notifications.critical)}
@@ -552,8 +458,8 @@ export const SettingsPanel: React.FC = () => {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.hatchReminders}</p>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.hatchDesc}</p>
+                  <p className="font-medium text-neutral-800 dark:text-neutral-200">{t('settings.hatchReminders')}</p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">{t('settings.hatchDescription')}</p>
                 </div>
                 <button
                   onClick={() => handleNotificationChange('reminders', !settings.notifications.reminders)}
@@ -573,13 +479,13 @@ export const SettingsPanel: React.FC = () => {
 
           {/* Backup */}
           <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 transition-colors duration-300">
-            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t.backup}</h3>
+            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t('settings.backup')}</h3>
             
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.autoBackup}</p>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.backupDesc}</p>
+                  <p className="font-medium text-neutral-800 dark:text-neutral-200">{t('settings.autoBackup')}</p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">{t('settings.backupDescription')}</p>
                 </div>
                 <button
                   onClick={() => handleAutoBackupChange(!settings.autoBackup)}
@@ -597,15 +503,15 @@ export const SettingsPanel: React.FC = () => {
 
               {settings.autoBackup && (
                 <div className="ml-8">
-                  <p className="font-medium text-neutral-800 dark:text-neutral-200 mb-2">{t.backupFreq}</p>
+                  <p className="font-medium text-neutral-800 dark:text-neutral-200 mb-2">{t('settings.backupFrequency')}</p>
                   <select
                     value={settings.backupFrequency}
                     onChange={(e) => handleBackupFrequencyChange(e.target.value)}
                     className="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-neutral-800 dark:text-neutral-200"
                   >
-                    <option value="hourly">{t.hourly}</option>
-                    <option value="daily">{t.daily}</option>
-                    <option value="weekly">{t.weekly}</option>
+                    <option value="hourly">{t('settings.hourly')}</option>
+                    <option value="daily">{t('settings.daily')}</option>
+                    <option value="weekly">{t('settings.weekly')}</option>
                   </select>
                 </div>
               )}
@@ -616,21 +522,21 @@ export const SettingsPanel: React.FC = () => {
                   className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                 >
                   <Download className="w-4 h-4" />
-                  {t.backupNow}
+                  {t('settings.backupNow')}
                 </button>
                 <button
                   onClick={handleExportData}
                   className="flex items-center gap-2 px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors"
                 >
                   <Download className="w-4 h-4" />
-                  {t.exportData}
+                  {t('settings.exportData')}
                 </button>
                 <button
                   onClick={handleImportData}
                   className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
                 >
                   <Upload className="w-4 h-4" />
-                  {t.importData}
+                  {t('settings.importData')}
                 </button>
               </div>
 
@@ -640,7 +546,7 @@ export const SettingsPanel: React.FC = () => {
               >
                 <div className="flex items-center gap-3">
                   <Database className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
-                  <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t.backupRestore}</span>
+                  <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t('settings.backupRestore')}</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
               </button>
@@ -649,13 +555,13 @@ export const SettingsPanel: React.FC = () => {
 
           {/* Synchronization */}
           <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 transition-colors duration-300">
-            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t.sync}</h3>
+            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t('settings.synchronization')}</h3>
             
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.autoSync}</p>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.syncDesc}</p>
+                  <p className="font-medium text-neutral-800 dark:text-neutral-200">{t('settings.autoSync')}</p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">{t('settings.syncDescription')}</p>
                 </div>
                 <button
                   onClick={() => handleSyncChange(!settings.syncEnabled)}
@@ -675,7 +581,7 @@ export const SettingsPanel: React.FC = () => {
 
           {/* Account */}
           <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 transition-colors duration-300">
-            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t.account}</h3>
+            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t('settings.account')}</h3>
             
             <div className="space-y-3">
               <button
@@ -686,8 +592,8 @@ export const SettingsPanel: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
                   <div className="text-left">
-                    <p className="font-medium text-red-800 dark:text-red-300">{t.signOut}</p>
-                    <p className="text-sm text-red-600 dark:text-red-400">{t.signOutDesc}</p>
+                    <p className="font-medium text-red-800 dark:text-red-300">{t('settings.signOut')}</p>
+                    <p className="text-sm text-red-600 dark:text-red-400">{t('settings.signOutDescription')}</p>
                   </div>
                 </div>
                 {loading && (
@@ -699,14 +605,14 @@ export const SettingsPanel: React.FC = () => {
 
           {/* About */}
           <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 transition-colors duration-300">
-            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t.about}</h3>
+            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t('settings.about')}</h3>
             
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Info className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
                   <div>
-                    <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.version}</p>
+                    <p className="font-medium text-neutral-800 dark:text-neutral-200">{t('settings.version')}</p>
                     <p className="text-sm text-neutral-600 dark:text-neutral-400">{appVersion}</p>
                   </div>
                 </div>
@@ -714,26 +620,26 @@ export const SettingsPanel: React.FC = () => {
 
               <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
                 <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
-                  {t.description}
+                  {t('settings.description')}
                 </p>
                 <div className="space-y-2">
                   <button 
                     onClick={handleFeedbackSend}
                     className="flex items-center justify-between w-full p-3 bg-neutral-50 dark:bg-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors"
                   >
-                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t.feedback}</span>
+                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t('settings.feedback')}</span>
                     <ChevronRight className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
                   </button>
                   <button className="flex items-center justify-between w-full p-3 bg-neutral-50 dark:bg-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors">
-                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t.support}</span>
+                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t('settings.support')}</span>
                     <ChevronRight className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
                   </button>
                   <button className="flex items-center justify-between w-full p-3 bg-neutral-50 dark:bg-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors">
-                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t.privacy}</span>
+                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t('settings.privacy')}</span>
                     <ChevronRight className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
                   </button>
                   <button className="flex items-center justify-between w-full p-3 bg-neutral-50 dark:bg-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors">
-                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t.terms}</span>
+                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t('settings.terms')}</span>
                     <ChevronRight className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
                   </button>
                 </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bird } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface WelcomeSectionProps {
   user: any;
@@ -13,6 +14,7 @@ interface UserProfile {
 }
 
 export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ user }) => {
+  const { t } = useTranslation();
   const [userProfile, setUserProfile] = useState<UserProfile>({});
   const [loading, setLoading] = useState(true);
 
@@ -53,13 +55,13 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ user }) => {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Günaydın';
-    if (hour < 18) return 'İyi günler';
-    return 'İyi akşamlar';
+    if (hour < 12) return t('dashboard.greetings.morning');
+    if (hour < 18) return t('dashboard.greetings.afternoon');
+    return t('dashboard.greetings.evening');
   };
 
   const getDisplayName = () => {
-    if (loading) return 'Kullanıcı';
+    if (loading) return t('common.loading');
     
     const { first_name, last_name, full_name } = userProfile;
     
@@ -74,7 +76,7 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ user }) => {
     }
     
     // Son çare olarak email'den kullanıcı adını al (@ işaretinden önceki kısım)
-    return user?.email?.split('@')[0] || 'Kullanıcı';
+    return user?.email?.split('@')[0] || 'User';
   };
 
   return (
@@ -82,10 +84,10 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ user }) => {
       <div className="flex items-center justify-between">
         <div className="min-w-0 flex-1 pr-4">
           <h2 className="text-xl sm:text-2xl font-bold mb-2 leading-tight">
-            {getGreeting()}, {getDisplayName()}!
+            {t('dashboard.welcome', { greeting: getGreeting(), name: getDisplayName() })}
           </h2>
           <p className="text-primary-100 text-base sm:text-lg leading-relaxed">
-            Kuluçka takibinize hoş geldiniz
+            {t('dashboard.welcomeMessage')}
           </p>
         </div>
         <div className="animate-bounce-gentle flex-shrink-0">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
+import { useTranslation } from './hooks/useTranslation';
 import { AuthForm } from './components/Auth/AuthForm';
 import { Header } from './components/Layout/Header';
 import { BottomNav } from './components/Layout/BottomNav';
@@ -18,6 +19,7 @@ import { ProfileEditModal } from './components/Profile/ProfileEditModal';
 
 function App() {
   const { user, loading } = useAuth();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showProfileModal, setShowProfileModal] = useState(false);
 
@@ -115,23 +117,23 @@ function App() {
   const getPageTitle = () => {
     switch (activeTab) {
       case 'dashboard':
-        return 'Dashboard';
+        return t('navigation.dashboard');
       case 'stats':
-        return 'Statistics';
+        return t('navigation.statistics');
       case 'birds':
-        return 'My Birds';
+        return t('navigation.myBirds');
       case 'incubation':
-        return 'Incubation Tracking';
+        return t('navigation.incubation');
       case 'chicks':
-        return 'Chicks';
+        return t('navigation.chicks');
       case 'pedigree':
-        return 'Pedigree';
+        return t('navigation.pedigree');
       case 'calendar':
-        return 'Calendar';
+        return t('navigation.calendar');
       case 'settings':
-        return 'Settings';
+        return t('navigation.settings');
       default:
-        return 'Incubation Tracker';
+        return 'BudgieBreedingTracker';
     }
   };
 
