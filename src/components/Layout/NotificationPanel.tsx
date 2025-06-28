@@ -23,6 +23,15 @@ export const NotificationPanel: React.FC = () => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
+
+    // Set up notification refresh interval
+    const interval = setInterval(() => {
+      if (!isOpen) { // Only refresh when panel is closed
+        loadNotifications(false); // Silent refresh
+      }
+    }, 60000); // Refresh every minute
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -38,8 +47,8 @@ export const NotificationPanel: React.FC = () => {
     };
   }, []);
 
-  const loadNotifications = async () => {
-    setLoading(true);
+  const loadNotifications = async (showLoadingState = true) => {
+    if (showLoadingState) setLoading(true);
     try {
       await notificationService.loadNotifications();
       setNotifications(notificationService.getNotifications());
@@ -47,7 +56,7 @@ export const NotificationPanel: React.FC = () => {
     } catch (error) {
       console.error('Error loading notifications:', error);
     } finally {
-      setLoading(false);
+      if (showLoadingState) setLoading(false);
     }
   };
 
@@ -56,6 +65,12 @@ export const NotificationPanel: React.FC = () => {
       await notificationService.markAsRead(notification.id);
       setNotifications(notificationService.getNotifications());
       setUnreadCount(notificationService.getUnreadCount());
+    }
+
+    // Handle navigation based on notification type
+    if (notification.type === 'hatch_reminder' && notification.data?.clutch_id) {
+      // TODO: Navigate to clutch detail
+      console.log('Navigate to clutch:', notification.data.clutch_id);
     }
   };
 
@@ -95,6 +110,8 @@ export const NotificationPanel: React.FC = () => {
         return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30';
       case 'feeding_reminder':
         return 'text-pink-600 bg-pink-100 dark:text-pink-400 dark:bg-pink-900/30';
+      case 'health_check':
+        return 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30';
       default:
         return 'text-neutral-600 bg-neutral-100 dark:text-neutral-400 dark:bg-neutral-700';
     }

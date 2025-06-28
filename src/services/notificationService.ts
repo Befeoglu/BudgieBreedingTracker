@@ -52,6 +52,17 @@ class NotificationService {
     await this.loadNotifications();
     await this.loadSettings();
     this.scheduleDailyNotifications();
+    
+    // Setup notification permission
+    if ('Notification' in window) {
+      if (Notification.permission === 'default') {
+        try {
+          await Notification.requestPermission();
+        } catch (error) {
+          console.error('Error requesting notification permission:', error);
+        }
+      }
+    }
   }
 
   async loadNotifications() {
@@ -88,6 +99,9 @@ class NotificationService {
       
       if (data) {
         this.settings = { ...this.settings, ...data.settings };
+      } else {
+        // If no settings found, create default settings
+        await this.saveSettings(this.settings);
       }
     } catch (error) {
       console.error('Error loading notification settings:', error);
@@ -106,6 +120,8 @@ class NotificationService {
         .upsert({
           user_id: user.id,
           settings: this.settings
+        }, {
+          onConflict: 'user_id'
         });
 
       if (error) throw error;
@@ -116,6 +132,12 @@ class NotificationService {
 
   async createNotification(notification: Omit<NotificationData, 'id' | 'user_id' | 'created_at'>) {
     try {
+      // Check if we're in quiet hours
+      if (this.settings.do_not_disturb && this.isQuietTime()) {
+        console.log('Notification suppressed during quiet hours');
+        return;
+      }
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 

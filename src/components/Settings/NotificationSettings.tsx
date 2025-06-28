@@ -18,9 +18,11 @@ export const NotificationSettings: React.FC = () => {
     do_not_disturb: false
   });
   const [loading, setLoading] = useState(false);
+  const [hasNotificationPermission, setHasNotificationPermission] = useState<boolean | null>(null);
 
   useEffect(() => {
     loadSettings();
+    checkNotificationPermission();
   }, []);
 
   const loadSettings = async () => {
@@ -29,6 +31,36 @@ export const NotificationSettings: React.FC = () => {
       setSettings(notificationService.getSettings());
     } catch (error) {
       console.error('Error loading notification settings:', error);
+    }
+  };
+
+  const checkNotificationPermission = () => {
+    if (!('Notification' in window)) {
+      setHasNotificationPermission(false);
+      return;
+    }
+    
+    setHasNotificationPermission(Notification.permission === 'granted');
+  };
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      showToast('Bu tarayıcı bildirimleri desteklemiyor', 'error');
+      return;
+    }
+    
+    try {
+      const permission = await Notification.requestPermission();
+      setHasNotificationPermission(permission === 'granted');
+      
+      if (permission === 'granted') {
+        showToast('Bildirim izni verildi', 'success');
+      } else {
+        showToast('Bildirim izni reddedildi', 'error');
+      }
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
+      showToast('Bildirim izni alınırken hata oluştu', 'error');
     }
   };
 
@@ -72,6 +104,28 @@ export const NotificationSettings: React.FC = () => {
         <Bell className="w-5 h-5" />
         {t('settings.notifications')}
       </h3>
+
+      {hasNotificationPermission === false && (
+        <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <BellRing className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300 mb-2">
+                Bildirim İzni Gerekiyor
+              </p>
+              <p className="text-xs text-yellow-600 dark:text-yellow-400 mb-4">
+                Uygulama bildirimlerini alabilmek için tarayıcı bildirim iznine ihtiyaç vardır.
+              </p>
+              <button
+                onClick={requestNotificationPermission}
+                className="px-3 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 transition-colors"
+              >
+                Bildirim İzni Ver
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Bildirim Türleri */}

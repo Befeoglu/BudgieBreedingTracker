@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Edit3, Plus, Egg, Calendar, Users, FileText, Trash2, Baby } from 'lucide-react';
+import { X, Edit3, Plus, Egg, Calendar, Users, FileText, Trash2, Baby, AlertCircle } from 'lucide-react';
 import { IncubationForm } from './IncubationForm';
 import { EggForm } from './EggForm';
 import { supabase } from '../../lib/supabase';
@@ -67,6 +67,7 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
   const [femaleBird, setFemaleBird] = useState<Bird | null>(null);
   const [maleBird, setMaleBird] = useState<Bird | null>(null);
   const [creatingChick, setCreatingChick] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Only load data if incubation and incubation.id are valid
@@ -75,6 +76,7 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
       loadBirds();
     } else {
       setLoading(false);
+      setError('Kuluçka bilgileri bulunamadı veya geçersiz.');
     }
   }, [incubation?.id]);
 
@@ -83,6 +85,7 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
     if (!incubation || !incubation.id) {
       console.warn('Cannot load eggs: incubation or incubation.id is undefined');
       setLoading(false);
+      setError('Kuluçka bilgileri bulunamadı veya geçersiz.');
       return;
     }
 
@@ -97,6 +100,7 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
       setEggs(data || []);
     } catch (error) {
       console.error('Error loading eggs:', error);
+      setError('Yumurta verileri yüklenirken hata oluştu.');
     } finally {
       setLoading(false);
     }
@@ -106,6 +110,7 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
     // Guard clause to ensure incubation exists
     if (!incubation) {
       console.warn('Cannot load birds: incubation is undefined');
+      setError('Kuluçka bilgileri bulunamadı veya geçersiz.');
       return;
     }
 
@@ -311,19 +316,19 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
   };
 
   // Early return if incubation is not valid
-  if (!incubation || !incubation.id) {
+  if (!incubation || !incubation.id || error) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white dark:bg-neutral-800 rounded-2xl max-w-md w-full p-6">
           <div className="text-center">
             <div className="text-red-500 mb-4">
-              <X className="w-12 h-12 mx-auto" />
+              <AlertCircle className="w-12 h-12 mx-auto" />
             </div>
             <h2 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
               Hata
             </h2>
             <p className="text-neutral-600 dark:text-neutral-400 mb-4">
-              Kuluçka bilgileri bulunamadı veya geçersiz.
+              {error || "Kuluçka bilgileri bulunamadı veya geçersiz."}
             </p>
             <button
               onClick={onClose}
