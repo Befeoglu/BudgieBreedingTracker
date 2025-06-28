@@ -29,7 +29,20 @@
     "previous": "Previous",
     "confirm": "Confirm",
     "required": "Required",
-    "optional": "Optional"
+    "optional": "Optional",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "tomorrow": "Tomorrow",
+    "thisWeek": "This Week",
+    "lastWeek": "Last Week",
+    "thisMonth": "This Month",
+    "lastMonth": "Last Month",
+    "thisYear": "This Year",
+    "lastYear": "Last Year",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} minutes ago",
+    "hoursAgo": "{{count}} hours ago",
+    "daysAgo": "{{count}} days ago"
   },
   "auth": {
     "signIn": "Sign In",
@@ -126,6 +139,36 @@
       "cockatiel": "Cockatiel",
       "zebraFinch": "Zebra Finch",
       "other": "Other"
+    },
+    "datePicker": {
+      "selectDate": "Select Date",
+      "quickSelect": "Quick Select",
+      "dateWheel": "Date Picker",
+      "today": "Today",
+      "oneWeekAgo": "1 Week Ago",
+      "oneMonthAgo": "1 Month Ago",
+      "threeMonthsAgo": "3 Months Ago",
+      "sixMonthsAgo": "6 Months Ago",
+      "oneYearAgo": "1 Year Ago",
+      "day": "Day",
+      "month": "Month",
+      "year": "Year",
+      "futureWarning": "⚠️ You cannot select a future date",
+      "ageDisplay": "{{age}} old",
+      "months": {
+        "january": "January",
+        "february": "February",
+        "march": "March",
+        "april": "April",
+        "may": "May",
+        "june": "June",
+        "july": "July",
+        "august": "August",
+        "september": "September",
+        "october": "October",
+        "november": "November",
+        "december": "December"
+      }
     }
   },
   "incubation": {

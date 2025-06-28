@@ -29,7 +29,20 @@
     "previous": "Önceki",
     "confirm": "Onayla",
     "required": "Zorunlu",
-    "optional": "İsteğe bağlı"
+    "optional": "İsteğe bağlı",
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "tomorrow": "Yarın",
+    "thisWeek": "Bu Hafta",
+    "lastWeek": "Geçen Hafta",
+    "thisMonth": "Bu Ay",
+    "lastMonth": "Geçen Ay",
+    "thisYear": "Bu Yıl",
+    "lastYear": "Geçen Yıl",
+    "justNow": "Az önce",
+    "minutesAgo": "{{count}} dakika önce",
+    "hoursAgo": "{{count}} saat önce",
+    "daysAgo": "{{count}} gün önce"
   },
   "auth": {
     "signIn": "Giriş Yap",
@@ -126,6 +139,36 @@
       "cockatiel": "Sultan Papağanı",
       "zebraFinch": "Zebra Finch",
       "other": "Diğer"
+    },
+    "datePicker": {
+      "selectDate": "Tarih Seçin",
+      "quickSelect": "Hızlı Seçim",
+      "dateWheel": "Tarih Seçici",
+      "today": "Bugün",
+      "oneWeekAgo": "1 Hafta Önce",
+      "oneMonthAgo": "1 Ay Önce",
+      "threeMonthsAgo": "3 Ay Önce",
+      "sixMonthsAgo": "6 Ay Önce",
+      "oneYearAgo": "1 Yıl Önce",
+      "day": "Gün",
+      "month": "Ay",
+      "year": "Yıl",
+      "futureWarning": "⚠️ Gelecekteki bir tarih seçemezsiniz",
+      "ageDisplay": "{{age}} yaşında",
+      "months": {
+        "january": "Ocak",
+        "february": "Şubat",
+        "march": "Mart",
+        "april": "Nisan",
+        "may": "Mayıs",
+        "june": "Haziran",
+        "july": "Temmuz",
+        "august": "Ağustos",
+        "september": "Eylül",
+        "october": "Ekim",
+        "november": "Kasım",
+        "december": "Aralık"
+      }
     }
   },
   "incubation": {

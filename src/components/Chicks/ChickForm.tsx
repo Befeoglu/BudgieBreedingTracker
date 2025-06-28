@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Trash2, Calendar, Scale, Baby } from 'lucide-react';
+import { X, Save, Trash2, Scale, Baby } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { DatePicker } from '../Common/DatePicker';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface Chick {
   id: string;
@@ -29,6 +31,7 @@ export const ChickForm: React.FC<ChickFormProps> = ({
   onDelete,
   isEditing = false
 }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: '',
     hatch_date: '',
@@ -55,11 +58,11 @@ export const ChickForm: React.FC<ChickFormProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (!formData.hatch_date) {
-      newErrors.hatch_date = 'Çıkım tarihi zorunludur';
+      newErrors.hatch_date = t('chicks.hatchDateRequired');
     }
 
     if (formData.weight && (isNaN(Number(formData.weight)) || Number(formData.weight) < 0)) {
-      newErrors.weight = 'Geçerli bir ağırlık girin';
+      newErrors.weight = t('chicks.validWeightRequired');
     }
 
     setErrors(newErrors);
@@ -85,7 +88,7 @@ export const ChickForm: React.FC<ChickFormProps> = ({
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
+      if (!user) throw new Error(t('errors.authError'));
 
       const chickData = {
         name: formData.name || null,
@@ -115,12 +118,12 @@ export const ChickForm: React.FC<ChickFormProps> = ({
 
       onSave(result.data);
       
-      const message = isEditing ? 'Yavru bilgileri güncellendi!' : 'Yeni yavru eklendi!';
+      const message = isEditing ? t('chicks.chickUpdated') : t('chicks.chickAdded');
       showToast(message, 'success');
 
     } catch (error: any) {
       console.error('Error saving chick:', error);
-      showToast(error.message || 'Bir hata oluştu', 'error');
+      showToast(error.message || t('errors.general'), 'error');
     } finally {
       setLoading(false);
     }
@@ -140,12 +143,12 @@ export const ChickForm: React.FC<ChickFormProps> = ({
       if (error) throw error;
 
       onDelete(chick.id);
-      showToast('Yavru silindi', 'success');
+      showToast(t('chicks.chickDeleted'), 'success');
       setShowDeleteConfirm(false);
 
     } catch (error: any) {
       console.error('Error deleting chick:', error);
-      showToast(error.message || 'Silme işlemi başarısız', 'error');
+      showToast(error.message || t('errors.general'), 'error');
     } finally {
       setLoading(false);
     }
@@ -166,15 +169,15 @@ export const ChickForm: React.FC<ChickFormProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-neutral-800 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto transition-colors duration-300">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-neutral-800">
-              {isEditing ? 'Yavru Bilgilerini Düzenle' : 'Yeni Yavru Ekle'}
+            <h2 className="text-2xl font-bold text-neutral-800 dark:text-neutral-200">
+              {isEditing ? t('chicks.editChickInfo') : t('chicks.newChick')}
             </h2>
             <button
               onClick={onCancel}
-              className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+              className="p-2 rounded-lg text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
             >
               <X className="w-6 h-6" />
             </button>
@@ -182,77 +185,68 @@ export const ChickForm: React.FC<ChickFormProps> = ({
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="text-center">
-              <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Baby className="w-10 h-10 text-yellow-600" />
+              <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Baby className="w-10 h-10 text-yellow-600 dark:text-yellow-400" />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Yavru Adı
+              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
+                {t('chicks.chickName')}
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300"
-                placeholder="Örn: Yavru 1"
+                className="w-full px-4 py-3 border-2 border-neutral-200 dark:border-neutral-600 rounded-xl focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900/50 focus:border-primary-400 dark:focus:border-primary-600 transition-all duration-300 bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200"
+                placeholder={t('chicks.chickNamePlaceholder')}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Çıkım Tarihi <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                <input
-                  type="date"
-                  value={formData.hatch_date}
-                  onChange={(e) => handleInputChange('hatch_date', e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300 ${
-                    errors.hatch_date ? 'border-red-300 focus:ring-red-200 focus:border-red-400' : 'border-neutral-200'
-                  }`}
-                />
-              </div>
-              {errors.hatch_date && (
-                <p className="mt-2 text-sm text-red-600 animate-shake">{errors.hatch_date}</p>
-              )}
+              <DatePicker
+                label={t('chicks.hatchDate')}
+                value={formData.hatch_date}
+                onChange={(date) => handleInputChange('hatch_date', date)}
+                required
+                error={errors.hatch_date}
+                maxDate={new Date().toISOString().split('T')[0]}
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Ağırlık (gram)
+              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
+                {t('chicks.weight')}
               </label>
               <div className="relative">
-                <Scale className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                <Scale className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
                 <input
                   type="number"
                   step="0.1"
                   min="0"
                   value={formData.weight}
                   onChange={(e) => handleInputChange('weight', e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300 ${
-                    errors.weight ? 'border-red-300 focus:ring-red-200 focus:border-red-400' : 'border-neutral-200'
+                  className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900/50 focus:border-primary-400 dark:focus:border-primary-600 transition-all duration-300 bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 ${
+                    errors.weight ? 'border-red-300 dark:border-red-700 focus:ring-red-200 dark:focus:ring-red-900/50 focus:border-red-400 dark:focus:border-red-600' : 'border-neutral-200 dark:border-neutral-600'
                   }`}
-                  placeholder="Örn: 5.2"
+                  placeholder={t('chicks.weightPlaceholder')}
                 />
               </div>
               {errors.weight && (
-                <p className="mt-2 text-sm text-red-600 animate-shake">{errors.weight}</p>
+                <p className="mt-2 text-sm text-red-600 dark:text-red-400 animate-shake">{errors.weight}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Notlar
+              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
+                {t('chicks.notes')}
               </label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300 resize-none"
-                placeholder="Yavru ile ilgili notlar, gözlemler..."
+                className="w-full px-4 py-3 border-2 border-neutral-200 dark:border-neutral-600 rounded-xl focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900/50 focus:border-primary-400 dark:focus:border-primary-600 transition-all duration-300 resize-none bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200"
+                placeholder={t('chicks.notesPlaceholder')}
               />
             </div>
 
@@ -267,7 +261,7 @@ export const ChickForm: React.FC<ChickFormProps> = ({
                 ) : (
                   <>
                     <Save className="w-5 h-5" />
-                    {isEditing ? 'Güncelle' : 'Kaydet'}
+                    {isEditing ? t('common.save') : t('common.save')}
                   </>
                 )}
               </button>
@@ -279,16 +273,16 @@ export const ChickForm: React.FC<ChickFormProps> = ({
                   className="px-6 py-4 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 focus:ring-4 focus:ring-red-200 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl flex items-center gap-2"
                 >
                   <Trash2 className="w-5 h-5" />
-                  Sil
+                  {t('common.delete')}
                 </button>
               )}
 
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-6 py-4 bg-neutral-100 text-neutral-700 rounded-xl font-bold hover:bg-neutral-200 focus:ring-4 focus:ring-neutral-200 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+                className="px-6 py-4 bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-600 focus:ring-4 focus:ring-neutral-200 dark:focus:ring-neutral-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
               >
-                İptal
+                {t('common.cancel')}
               </button>
             </div>
           </form>
@@ -297,22 +291,21 @@ export const ChickForm: React.FC<ChickFormProps> = ({
 
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full animate-slide-up">
+          <div className="bg-white dark:bg-neutral-800 rounded-2xl p-6 max-w-md w-full animate-slide-up transition-colors duration-300">
             <div className="text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-8 h-8 text-red-600" />
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-xl font-bold text-neutral-800 mb-2">Yavruyu Sil</h3>
-              <p className="text-neutral-600 mb-6">
-                Bu yavruyu silmek istediğinizden emin misiniz? 
-                Bu işlem geri alınamaz.
+              <h3 className="text-xl font-bold text-neutral-800 dark:text-neutral-200 mb-2">{t('chicks.deleteChick')}</h3>
+              <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+                {t('chicks.confirmDeleteChick')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 px-4 py-3 bg-neutral-100 text-neutral-700 rounded-xl font-medium hover:bg-neutral-200 transition-colors"
+                  className="flex-1 px-4 py-3 bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-xl font-medium hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
                 >
-                  İptal
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleDelete}
@@ -322,7 +315,7 @@ export const ChickForm: React.FC<ChickFormProps> = ({
                   {loading ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   ) : (
-                    'Evet, Sil'
+                    t('common.yes')
                   )}
                 </button>
               </div>
