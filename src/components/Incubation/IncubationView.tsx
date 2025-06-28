@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Calendar, Egg, TrendingUp, Edit3, Trash2, Eye, Heart } from 'lucide-react';
 import { IncubationForm } from './IncubationForm';
+import { NewIncubationForm } from './NewIncubationForm';
 import { IncubationDetailView } from './IncubationDetailView';
 import { supabase } from '../../lib/supabase';
 import { format, differenceInDays, isValid } from 'date-fns';
@@ -185,7 +186,7 @@ export const IncubationView: React.FC = () => {
   const [filteredIncubations, setFilteredIncubations] = useState<Incubation[]>([]);
   const [eggCounts, setEggCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [showNewForm, setShowNewForm] = useState(false);
   const [editingIncubation, setEditingIncubation] = useState<Incubation | null>(null);
   const [viewingIncubation, setViewingIncubation] = useState<Incubation | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -260,12 +261,16 @@ export const IncubationView: React.FC = () => {
 
   const handleSaveIncubation = (savedIncubation: Incubation) => {
     if (editingIncubation) {
-      setIncubations(prev => prev.map(inc => inc.id === savedIncubation.id ? savedIncubation : inc));
+      // Update existing incubation
+      setIncubations(prev => 
+        prev.map(inc => inc.id === savedIncubation.id ? savedIncubation : inc)
+      );
+      setEditingIncubation(null);
     } else {
+      // Add new incubation to the beginning of the list
       setIncubations(prev => [savedIncubation, ...prev]);
+      setShowNewForm(false);
     }
-    setShowForm(false);
-    setEditingIncubation(null);
   };
 
   const handleEditIncubation = (incubation: Incubation) => {
@@ -428,15 +433,15 @@ export const IncubationView: React.FC = () => {
           <p className="text-neutral-600 mb-6">
             {searchTerm || filterStatus !== 'all'
               ? 'Farklı filtreler deneyebilir veya yeni kuluçka ekleyebilirsiniz.'
-              : 'İlk kuluçkanızı ekleyerek üreme takibinize başlayın!'
+              : 'İlk kuluçkanızı ekleyerek başlayın!'
             }
           </p>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => setShowNewForm(true)}
             className="bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center gap-2 mx-auto shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             <Plus className="w-5 h-5" />
-            İlk Kuluçkamı Başlat
+            Yeni Kuluçka Oluştur
           </button>
         </div>
       ) : (
@@ -455,13 +460,20 @@ export const IncubationView: React.FC = () => {
       )}
 
       {/* Incubation Form Modal */}
-      {showForm && (
+      {showNewForm && (
+        <NewIncubationForm
+          onSave={handleSaveIncubation}
+          onCancel={() => setShowNewForm(false)}
+        />
+      )}
+
+      {/* Editing Form Modal */}
+      {editingIncubation && (
         <IncubationForm
           incubation={editingIncubation}
-          isEditing={!!editingIncubation}
+          isEditing={true}
           onSave={handleSaveIncubation}
           onCancel={() => {
-            setShowForm(false);
             setEditingIncubation(null);
           }}
           onDelete={handleDeleteIncubation}
