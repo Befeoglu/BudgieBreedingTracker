@@ -8,16 +8,16 @@ interface BottomNavProps {
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab }) => {
   const tabs = [
-    { id: 'dashboard', label: 'AnaSayfa', icon: Home },
-    { id: 'stats', label: 'İstatistik', icon: BarChart3 },
-    { id: 'birds', label: 'Kuşlarım', icon: Bird },
-    { id: 'incubation', label: 'Kuluçka', icon: Egg },
-    { id: 'chicks', label: 'Yavrular', icon: Baby },
-    { id: 'pedigree', label: 'SoyAğacı', icon: GitBranch },
+    { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'stats', label: 'Statistics', icon: BarChart3 },
+    { id: 'birds', label: 'My Birds', icon: Bird },
+    { id: 'incubation', label: 'Incubation', icon: Egg },
+    { id: 'chicks', label: 'Chicks', icon: Baby },
+    { id: 'pedigree', label: 'Pedigree', icon: GitBranch },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 pb-safe transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-1 sm:px-2">
         <div className="flex justify-around">
           {tabs.map((tab) => {
@@ -30,13 +30,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex flex-col items-center py-2 sm:py-3 px-1 min-w-0 flex-1 transition-colors ${
                   isActive
-                    ? 'text-primary-600'
-                    : 'text-neutral-500 hover:text-neutral-700'
+                    ? 'text-primary-600 dark:text-primary-400'
+                    : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
                 }`}
               >
-                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mb-1 flex-shrink-0 ${isActive ? 'text-primary-600' : ''}`} />
+                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mb-1 flex-shrink-0 ${isActive ? 'text-primary-600 dark:text-primary-400' : ''}`} />
                 <span className={`text-xs font-medium truncate max-w-full leading-tight ${
-                  isActive ? 'text-primary-600' : ''
+                  isActive ? 'text-primary-600 dark:text-primary-400' : ''
                 }`}>
                   {tab.label}
                 </span>

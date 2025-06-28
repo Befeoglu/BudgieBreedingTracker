@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { AuthForm } from './components/Auth/AuthForm';
 import { Header } from './components/Layout/Header';
@@ -21,9 +21,30 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showProfileModal, setShowProfileModal] = useState(false);
 
+  // Initialize theme on app load
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('app_theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const shouldUseDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+    
+    applyTheme(shouldUseDark);
+  }, []);
+
+  const applyTheme = (isDark: boolean) => {
+    const root = document.documentElement;
+    
+    if (isDark) {
+      root.classList.add('dark');
+      document.body.style.backgroundColor = '#1f2937';
+    } else {
+      root.classList.remove('dark');
+      document.body.style.backgroundColor = '#f5f5f4';
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-100 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center transition-colors duration-300">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
       </div>
     );
@@ -94,28 +115,28 @@ function App() {
   const getPageTitle = () => {
     switch (activeTab) {
       case 'dashboard':
-        return 'AnaSayfa';
+        return 'Dashboard';
       case 'stats':
-        return 'İstatistikler';
+        return 'Statistics';
       case 'birds':
-        return 'Kuşlarım';
+        return 'My Birds';
       case 'incubation':
-        return 'Kuluçka Takibi';
+        return 'Incubation Tracking';
       case 'chicks':
-        return 'Yavrular';
+        return 'Chicks';
       case 'pedigree':
-        return 'Soy Ağacı';
+        return 'Pedigree';
       case 'calendar':
-        return 'Takvim';
+        return 'Calendar';
       case 'settings':
-        return 'Ayarlar';
+        return 'Settings';
       default:
-        return 'Kuluçka Takip';
+        return 'Incubation Tracker';
     }
   };
 
   return (
-    <div className="min-h-screen bg-neutral-100">
+    <div className="min-h-screen bg-neutral-100 dark:bg-neutral-900 transition-colors duration-300">
       <Header 
         user={user} 
         title={getPageTitle()} 
@@ -129,7 +150,7 @@ function App() {
       
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Profil Düzenleme Modalı */}
+      {/* Profile Edit Modal */}
       <ProfileEditModal
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}

@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Moon, Sun, Globe, Bell, Download, Upload, Info, ChevronRight, Database, LogOut, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Moon, Sun, Globe, Bell, Download, Upload, Info, ChevronRight, Database, LogOut } from 'lucide-react';
 import { BackupPanel } from '../Backup/BackupPanel';
 import { signOut } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
-
-interface SettingsValidation {
-  isValid: boolean;
-  message: string;
-  action?: () => void;
-}
 
 interface SettingsState {
   darkMode: boolean;
@@ -39,27 +33,20 @@ export const SettingsPanel: React.FC = () => {
 
   const [showBackupPanel, setShowBackupPanel] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [validationResults, setValidationResults] = useState<Record<string, SettingsValidation>>({});
-  const [isValidating, setIsValidating] = useState(false);
   const [appVersion, setAppVersion] = useState('1.0.0');
 
   useEffect(() => {
     initializeSettings();
   }, []);
 
-  useEffect(() => {
-    validateSettings();
-  }, [settings]);
-
   const initializeSettings = async () => {
     setLoading(true);
     try {
       await loadUserSettings();
       await loadAppVersion();
-      await validateSettings();
     } catch (error) {
       console.error('Error initializing settings:', error);
-      showToast('Ayarlar yüklenirken hata oluştu', 'error');
+      showToast('Settings loading error', 'error');
     } finally {
       setLoading(false);
     }
@@ -82,11 +69,15 @@ export const SettingsPanel: React.FC = () => {
       }
 
       if (data) {
+        const isDarkMode = data.theme === 'dark';
         setSettings(prev => ({
           ...prev,
           language: data.language || 'tr',
-          darkMode: data.theme === 'dark'
+          darkMode: isDarkMode
         }));
+
+        // Apply theme immediately
+        applyTheme(isDarkMode);
       }
 
       // Load notification preferences from localStorage
@@ -117,7 +108,6 @@ export const SettingsPanel: React.FC = () => {
 
   const loadAppVersion = async () => {
     try {
-      // Try to get version from package.json or set default
       setAppVersion('1.0.0');
     } catch (error) {
       console.error('Error loading app version:', error);
@@ -125,218 +115,30 @@ export const SettingsPanel: React.FC = () => {
     }
   };
 
-  const validateSettings = async () => {
-    setIsValidating(true);
-    const results: Record<string, SettingsValidation> = {};
-
-    try {
-      // Validate Theme Setting
-      results.theme = validateThemeSetting();
-
-      // Validate Language Setting
-      results.language = validateLanguageSetting();
-
-      // Validate Notification Settings
-      results.notifications = validateNotificationSettings();
-
-      // Validate Backup Settings
-      results.backup = validateBackupSettings();
-
-      // Validate Sync Settings
-      results.sync = validateSyncSettings();
-
-      // Validate Auth Functions
-      results.auth = await validateAuthFunctions();
-
-      // Validate Data Export/Import
-      results.dataOperations = validateDataOperations();
-
-      // Validate App Info
-      results.appInfo = validateAppInfo();
-
-      setValidationResults(results);
-
-      // Auto-fix any invalid settings
-      await autoFixInvalidSettings(results);
-
-    } catch (error) {
-      console.error('Error validating settings:', error);
-      showToast('Ayar doğrulama sırasında hata oluştu', 'error');
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
-  const validateThemeSetting = (): SettingsValidation => {
-    const isValid = typeof settings.darkMode === 'boolean';
-    return {
-      isValid,
-      message: isValid ? 'Tema ayarı aktif' : 'Tema ayarı pasif',
-      action: isValid ? undefined : () => activateThemeSetting()
-    };
-  };
-
-  const validateLanguageSetting = (): SettingsValidation => {
-    const isValid = ['tr', 'en'].includes(settings.language);
-    return {
-      isValid,
-      message: isValid ? 'Dil ayarı aktif' : 'Dil ayarı pasif',
-      action: isValid ? undefined : () => activateLanguageSetting()
-    };
-  };
-
-  const validateNotificationSettings = (): SettingsValidation => {
-    const hasValidStructure = settings.notifications && 
-      typeof settings.notifications.daily === 'boolean' &&
-      typeof settings.notifications.critical === 'boolean' &&
-      typeof settings.notifications.reminders === 'boolean';
-
-    return {
-      isValid: hasValidStructure,
-      message: hasValidStructure ? 'Bildirim ayarları aktif' : 'Bildirim ayarları pasif',
-      action: hasValidStructure ? undefined : () => activateNotificationSettings()
-    };
-  };
-
-  const validateBackupSettings = (): SettingsValidation => {
-    const isValid = typeof settings.autoBackup === 'boolean' && 
-      ['hourly', 'daily', 'weekly'].includes(settings.backupFrequency);
-
-    return {
-      isValid,
-      message: isValid ? 'Yedekleme ayarları aktif' : 'Yedekleme ayarları pasif',
-      action: isValid ? undefined : () => activateBackupSettings()
-    };
-  };
-
-  const validateSyncSettings = (): SettingsValidation => {
-    const isValid = typeof settings.syncEnabled === 'boolean';
-    return {
-      isValid,
-      message: isValid ? 'Senkronizasyon ayarı aktif' : 'Senkronizasyon ayarı pasif',
-      action: isValid ? undefined : () => activateSyncSettings()
-    };
-  };
-
-  const validateAuthFunctions = async (): Promise<SettingsValidation> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const isValid = !!user;
-      
-      return {
-        isValid,
-        message: isValid ? 'Kimlik doğrulama aktif' : 'Kimlik doğrulama pasif',
-        action: isValid ? undefined : () => activateAuthFunctions()
-      };
-    } catch (error) {
-      return {
-        isValid: false,
-        message: 'Kimlik doğrulama hatası',
-        action: () => activateAuthFunctions()
-      };
-    }
-  };
-
-  const validateDataOperations = (): SettingsValidation => {
-    const hasExportFunction = typeof handleExportData === 'function';
-    const hasImportFunction = typeof handleImportData === 'function';
-    const isValid = hasExportFunction && hasImportFunction;
-
-    return {
-      isValid,
-      message: isValid ? 'Veri işlemleri aktif' : 'Veri işlemleri pasif',
-      action: isValid ? undefined : () => activateDataOperations()
-    };
-  };
-
-  const validateAppInfo = (): SettingsValidation => {
-    const isValid = !!appVersion && appVersion !== '';
-    return {
-      isValid,
-      message: isValid ? 'Uygulama bilgileri aktif' : 'Uygulama bilgileri pasif',
-      action: isValid ? undefined : () => activateAppInfo()
-    };
-  };
-
-  const autoFixInvalidSettings = async (results: Record<string, SettingsValidation>) => {
-    const invalidSettings = Object.entries(results).filter(([_, result]) => !result.isValid);
+  const applyTheme = (isDark: boolean) => {
+    const root = document.documentElement;
     
-    if (invalidSettings.length > 0) {
-      showToast(`${invalidSettings.length} pasif özellik tespit edildi, düzeltiliyor...`, 'warning');
-      
-      for (const [key, result] of invalidSettings) {
-        if (result.action) {
-          try {
-            await result.action();
-            showToast(`${key} özelliği aktifleştirildi`, 'success');
-          } catch (error) {
-            console.error(`Error activating ${key}:`, error);
-            showToast(`${key} özelliği aktifleştirilemedi`, 'error');
-          }
-        }
-      }
-      
-      // Re-validate after fixes
-      setTimeout(() => validateSettings(), 1000);
+    if (isDark) {
+      root.classList.add('dark');
+      root.style.setProperty('--bg-primary', '#1f2937');
+      root.style.setProperty('--bg-secondary', '#374151');
+      root.style.setProperty('--text-primary', '#f9fafb');
+      root.style.setProperty('--text-secondary', '#d1d5db');
+      root.style.setProperty('--border-color', '#4b5563');
+    } else {
+      root.classList.remove('dark');
+      root.style.setProperty('--bg-primary', '#ffffff');
+      root.style.setProperty('--bg-secondary', '#f9fafb');
+      root.style.setProperty('--text-primary', '#111827');
+      root.style.setProperty('--text-secondary', '#6b7280');
+      root.style.setProperty('--border-color', '#e5e7eb');
     }
-  };
 
-  // Activation Functions
-  const activateThemeSetting = async () => {
-    setSettings(prev => ({ ...prev, darkMode: false }));
-    await updateUserSettings({ theme: 'light' });
-  };
-
-  const activateLanguageSetting = async () => {
-    setSettings(prev => ({ ...prev, language: 'tr' }));
-    await updateUserSettings({ language: 'tr' });
-  };
-
-  const activateNotificationSettings = () => {
-    const defaultNotifications = {
-      daily: true,
-      critical: true,
-      reminders: false
-    };
-    setSettings(prev => ({ ...prev, notifications: defaultNotifications }));
-    localStorage.setItem('notification_settings', JSON.stringify(defaultNotifications));
-  };
-
-  const activateBackupSettings = () => {
-    const defaultBackup = {
-      autoBackup: true,
-      backupFrequency: 'daily'
-    };
-    setSettings(prev => ({ ...prev, ...defaultBackup }));
-    localStorage.setItem('backup_settings', JSON.stringify(defaultBackup));
-  };
-
-  const activateSyncSettings = () => {
-    setSettings(prev => ({ ...prev, syncEnabled: true }));
-    localStorage.setItem('sync_settings', JSON.stringify({ syncEnabled: true }));
-  };
-
-  const activateAuthFunctions = async () => {
-    // Auth functions are handled by Supabase, just validate current state
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        showToast('Lütfen tekrar giriş yapın', 'warning');
-      }
-    } catch (error) {
-      showToast('Kimlik doğrulama hatası', 'error');
-    }
-  };
-
-  const activateDataOperations = () => {
-    // Data operations are already defined, just validate they exist
-    if (typeof handleExportData !== 'function' || typeof handleImportData !== 'function') {
-      showToast('Veri işlemi fonksiyonları eksik', 'error');
-    }
-  };
-
-  const activateAppInfo = () => {
-    setAppVersion('1.0.0');
+    // Update body background
+    document.body.style.backgroundColor = isDark ? '#1f2937' : '#f5f5f4';
+    
+    // Store theme preference
+    localStorage.setItem('app_theme', isDark ? 'dark' : 'light');
   };
 
   // Settings Update Functions
@@ -352,13 +154,13 @@ export const SettingsPanel: React.FC = () => {
 
       if (error) {
         console.error('Error updating user settings:', error);
-        showToast('Ayarlar güncellenirken hata oluştu', 'error');
+        showToast(settings.language === 'tr' ? 'Ayarlar güncellenirken hata oluştu' : 'Error updating settings', 'error');
       } else {
-        showToast('Ayarlar başarıyla güncellendi', 'success');
+        showToast(settings.language === 'tr' ? 'Ayarlar başarıyla güncellendi' : 'Settings updated successfully', 'success');
       }
     } catch (error) {
       console.error('Error updating user settings:', error);
-      showToast('Ayarlar güncellenirken hata oluştu', 'error');
+      showToast(settings.language === 'tr' ? 'Ayarlar güncellenirken hata oluştu' : 'Error updating settings', 'error');
     }
   };
 
@@ -372,14 +174,7 @@ export const SettingsPanel: React.FC = () => {
     setSettings(prev => ({ ...prev, darkMode: isDark }));
     const theme = isDark ? 'dark' : 'light';
     await updateUserSettings({ theme });
-    persistTheme(isDark);
-    
-    // Apply theme to document
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    applyTheme(isDark);
   };
 
   const handleNotificationChange = (type: keyof typeof settings.notifications, value: boolean) => {
@@ -421,7 +216,11 @@ export const SettingsPanel: React.FC = () => {
   };
 
   const handleSignOut = async () => {
-    const confirmed = window.confirm('Hesaptan çıkış yapmak istediğinizden emin misiniz?');
+    const confirmMessage = settings.language === 'tr' 
+      ? 'Hesaptan çıkış yapmak istediğinizden emin misiniz?' 
+      : 'Are you sure you want to sign out?';
+    
+    const confirmed = window.confirm(confirmMessage);
     if (!confirmed) return;
 
     setLoading(true);
@@ -429,7 +228,7 @@ export const SettingsPanel: React.FC = () => {
       await signOut();
     } catch (error) {
       console.error('Error signing out:', error);
-      showToast('Çıkış yaparken hata oluştu', 'error');
+      showToast(settings.language === 'tr' ? 'Çıkış yaparken hata oluştu' : 'Error signing out', 'error');
     } finally {
       setLoading(false);
     }
@@ -438,12 +237,7 @@ export const SettingsPanel: React.FC = () => {
   // Utility Functions
   const persistLocale = (locale: string) => {
     localStorage.setItem('app_language', locale);
-    // Apply language changes to the app
     document.documentElement.lang = locale;
-  };
-
-  const persistTheme = (isDark: boolean) => {
-    localStorage.setItem('app_theme', isDark ? 'dark' : 'light');
   };
 
   const saveUserSettings = (settings: any) => {
@@ -452,27 +246,26 @@ export const SettingsPanel: React.FC = () => {
 
   const triggerAutoBackup = () => {
     console.log('Auto backup triggered');
-    showToast('Otomatik yedekleme başlatıldı', 'info');
+    showToast(settings.language === 'tr' ? 'Otomatik yedekleme başlatıldı' : 'Auto backup started', 'info');
   };
 
   const stopAutoBackup = () => {
     console.log('Auto backup stopped');
-    showToast('Otomatik yedekleme durduruldu', 'info');
+    showToast(settings.language === 'tr' ? 'Otomatik yedekleme durduruldu' : 'Auto backup stopped', 'info');
   };
 
   const triggerSync = () => {
     console.log('Sync triggered');
-    showToast('Senkronizasyon başlatıldı', 'info');
+    showToast(settings.language === 'tr' ? 'Senkronizasyon başlatıldı' : 'Synchronization started', 'info');
   };
 
   const triggerBackup = () => {
     console.log('Manual backup triggered');
-    showToast('Manuel yedekleme başlatıldı', 'info');
+    showToast(settings.language === 'tr' ? 'Manuel yedekleme başlatıldı' : 'Manual backup started', 'info');
   };
 
   const handleExportData = () => {
     try {
-      // Create sample data for export
       const exportData = {
         settings: settings,
         exportDate: new Date().toISOString(),
@@ -491,10 +284,10 @@ export const SettingsPanel: React.FC = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      showToast('Veriler başarıyla dışa aktarıldı', 'success');
+      showToast(settings.language === 'tr' ? 'Veriler başarıyla dışa aktarıldı' : 'Data exported successfully', 'success');
     } catch (error) {
       console.error('Export error:', error);
-      showToast('Dışa aktarma sırasında hata oluştu', 'error');
+      showToast(settings.language === 'tr' ? 'Dışa aktarma sırasında hata oluştu' : 'Export error occurred', 'error');
     }
   };
 
@@ -512,12 +305,12 @@ export const SettingsPanel: React.FC = () => {
               const data = JSON.parse(e.target?.result as string);
               if (data.settings) {
                 setSettings(data.settings);
-                showToast('Veriler başarıyla içe aktarıldı', 'success');
+                showToast(settings.language === 'tr' ? 'Veriler başarıyla içe aktarıldı' : 'Data imported successfully', 'success');
               } else {
-                showToast('Geçersiz dosya formatı', 'error');
+                showToast(settings.language === 'tr' ? 'Geçersiz dosya formatı' : 'Invalid file format', 'error');
               }
             } catch (error) {
-              showToast('Dosya okuma hatası', 'error');
+              showToast(settings.language === 'tr' ? 'Dosya okuma hatası' : 'File reading error', 'error');
             }
           };
           reader.readAsText(file);
@@ -526,13 +319,17 @@ export const SettingsPanel: React.FC = () => {
       input.click();
     } catch (error) {
       console.error('Import error:', error);
-      showToast('İçe aktarma sırasında hata oluştu', 'error');
+      showToast(settings.language === 'tr' ? 'İçe aktarma sırasında hata oluştu' : 'Import error occurred', 'error');
     }
   };
 
   const handleFeedbackSend = () => {
-    const subject = encodeURIComponent('BudgieBreedingTracker Geri Bildirim');
-    const body = encodeURIComponent(`Merhaba,\n\nBudgieBreedingTracker uygulaması hakkında geri bildirimim:\n\n[Geri bildiriminizi buraya yazın]\n\nTeşekkürler.`);
+    const subject = encodeURIComponent('BudgieBreedingTracker Feedback');
+    const body = encodeURIComponent(
+      settings.language === 'tr' 
+        ? `Merhaba,\n\nBudgieBreedingTracker uygulaması hakkında geri bildirimim:\n\n[Geri bildiriminizi buraya yazın]\n\nTeşekkürler.`
+        : `Hello,\n\nMy feedback about BudgieBreedingTracker app:\n\n[Write your feedback here]\n\nThank you.`
+    );
     window.open(`mailto:support@budgietracker.com?subject=${subject}&body=${body}`);
   };
 
@@ -592,11 +389,7 @@ export const SettingsPanel: React.FC = () => {
       privacy: 'Gizlilik Politikası',
       terms: 'Kullanım Şartları',
       feedback: 'Geri Bildirim Gönder',
-      description: 'BudgieBreedingTracker, muhabbet kuşu yetiştiricileri için geliştirilmiş profesyonel bir takip sistemidir.',
-      validation: 'Özellik Doğrulama',
-      validating: 'Doğrulanıyor...',
-      allActive: 'Tüm özellikler aktif',
-      someInactive: 'Bazı özellikler pasif'
+      description: 'BudgieBreedingTracker, muhabbet kuşu yetiştiricileri için geliştirilmiş profesyonel bir takip sistemidir.'
     },
     en: {
       title: 'Settings',
@@ -635,11 +428,7 @@ export const SettingsPanel: React.FC = () => {
       privacy: 'Privacy Policy',
       terms: 'Terms of Service',
       feedback: 'Send Feedback',
-      description: 'BudgieBreedingTracker is a professional tracking system developed for budgerigar breeders.',
-      validation: 'Feature Validation',
-      validating: 'Validating...',
-      allActive: 'All features active',
-      someInactive: 'Some features inactive'
+      description: 'BudgieBreedingTracker is a professional tracking system developed for budgerigar breeders.'
     }
   };
 
@@ -651,358 +440,303 @@ export const SettingsPanel: React.FC = () => {
         <div className="flex items-center mb-6">
           <button
             onClick={() => setShowBackupPanel(false)}
-            className="mr-4 p-2 rounded-lg hover:bg-neutral-100 transition-colors"
+            className="mr-4 p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
           >
             ←
           </button>
-          <h2 className="text-xl font-bold text-neutral-800">{t.backupRestore}</h2>
+          <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">{t.backupRestore}</h2>
         </div>
         <BackupPanel language={settings.language} theme={settings.darkMode ? 'dark' : 'light'} />
       </div>
     );
   }
 
-  const inactiveCount = Object.values(validationResults).filter(result => !result.isValid).length;
-
   return (
-    <div>
-      <h2 className="text-xl font-bold text-neutral-800 mb-6">{t.title}</h2>
-      
-      {/* Validation Status */}
-      <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-neutral-800">{t.validation}</h3>
-          <button
-            onClick={validateSettings}
-            disabled={isValidating}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
-          >
-            <RefreshCw className={`w-4 h-4 ${isValidating ? 'animate-spin' : ''}`} />
-            {isValidating ? t.validating : 'Yeniden Test Et'}
-          </button>
-        </div>
+    <div className="min-h-screen bg-neutral-100 dark:bg-neutral-900 transition-colors duration-300">
+      <div className="max-w-4xl mx-auto p-6">
+        <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200 mb-6">{t.title}</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Object.entries(validationResults).map(([key, result]) => (
-            <div
-              key={key}
-              className={`flex items-center justify-between p-3 rounded-lg border ${
-                result.isValid 
-                  ? 'bg-green-50 border-green-200' 
-                  : 'bg-red-50 border-red-200'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                {result.isValid ? (
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                ) : (
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
-                )}
-                <span className={`text-sm font-medium ${
-                  result.isValid ? 'text-green-800' : 'text-red-800'
-                }`}>
-                  {result.message}
-                </span>
-              </div>
-              {result.action && (
+        <div className="space-y-6">
+          {/* Theme & Language */}
+          <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 transition-colors duration-300">
+            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t.appearance}</h3>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {settings.darkMode ? <Moon className="w-5 h-5 text-neutral-600 dark:text-neutral-400" /> : <Sun className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />}
+                  <div>
+                    <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.theme}</p>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.themeDesc}</p>
+                  </div>
+                </div>
                 <button
-                  onClick={result.action}
-                  className="px-3 py-1 bg-primary-600 text-white text-xs rounded hover:bg-primary-700 transition-colors"
+                  onClick={() => handleThemeChange(!settings.darkMode)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.darkMode ? 'bg-primary-600' : 'bg-neutral-300'
+                  }`}
                 >
-                  Aktifleştir
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.darkMode ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
                 </button>
-              )}
-            </div>
-          ))}
-        </div>
-        
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-700">
-            <strong>Durum:</strong> {inactiveCount === 0 ? t.allActive : `${inactiveCount} özellik pasif`}
-          </p>
-        </div>
-      </div>
+              </div>
 
-      <div className="space-y-6">
-        {/* Theme & Language */}
-        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-          <h3 className="text-lg font-semibold text-neutral-800 mb-4">{t.appearance}</h3>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {settings.darkMode ? <Moon className="w-5 h-5 text-neutral-600" /> : <Sun className="w-5 h-5 text-neutral-600" />}
-                <div>
-                  <p className="font-medium text-neutral-800">{t.theme}</p>
-                  <p className="text-sm text-neutral-600">{t.themeDesc}</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Globe className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+                  <div>
+                    <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.language}</p>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.languageDesc}</p>
+                  </div>
                 </div>
-              </div>
-              <button
-                onClick={() => handleThemeChange(!settings.darkMode)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.darkMode ? 'bg-primary-600' : 'bg-neutral-300'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.darkMode ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Globe className="w-5 h-5 text-neutral-600" />
-                <div>
-                  <p className="font-medium text-neutral-800">{t.language}</p>
-                  <p className="text-sm text-neutral-600">{t.languageDesc}</p>
-                </div>
-              </div>
-              <select
-                value={settings.language}
-                onChange={(e) => handleLanguageChange(e.target.value as 'tr' | 'en')}
-                className="bg-neutral-100 border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="tr">Türkçe</option>
-                <option value="en">English</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Notifications */}
-        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-          <h3 className="text-lg font-semibold text-neutral-800 mb-4">{t.notifications}</h3>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Bell className="w-5 h-5 text-neutral-600" />
-                <div>
-                  <p className="font-medium text-neutral-800">{t.dailyReminders}</p>
-                  <p className="text-sm text-neutral-600">{t.dailyDesc}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => handleNotificationChange('daily', !settings.notifications.daily)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.notifications.daily ? 'bg-primary-600' : 'bg-neutral-300'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.notifications.daily ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-neutral-800">{t.criticalAlerts}</p>
-                <p className="text-sm text-neutral-600">{t.criticalDesc}</p>
-              </div>
-              <button
-                onClick={() => handleNotificationChange('critical', !settings.notifications.critical)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.notifications.critical ? 'bg-primary-600' : 'bg-neutral-300'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.notifications.critical ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-neutral-800">{t.hatchReminders}</p>
-                <p className="text-sm text-neutral-600">{t.hatchDesc}</p>
-              </div>
-              <button
-                onClick={() => handleNotificationChange('reminders', !settings.notifications.reminders)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.notifications.reminders ? 'bg-primary-600' : 'bg-neutral-300'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.notifications.reminders ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Backup */}
-        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-          <h3 className="text-lg font-semibold text-neutral-800 mb-4">{t.backup}</h3>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-neutral-800">{t.autoBackup}</p>
-                <p className="text-sm text-neutral-600">{t.backupDesc}</p>
-              </div>
-              <button
-                onClick={() => handleAutoBackupChange(!settings.autoBackup)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.autoBackup ? 'bg-primary-600' : 'bg-neutral-300'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.autoBackup ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-
-            {settings.autoBackup && (
-              <div className="ml-8">
-                <p className="font-medium text-neutral-800 mb-2">{t.backupFreq}</p>
                 <select
-                  value={settings.backupFrequency}
-                  onChange={(e) => handleBackupFrequencyChange(e.target.value)}
-                  className="bg-neutral-100 border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  value={settings.language}
+                  onChange={(e) => handleLanguageChange(e.target.value as 'tr' | 'en')}
+                  className="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-neutral-800 dark:text-neutral-200"
                 >
-                  <option value="hourly">{t.hourly}</option>
-                  <option value="daily">{t.daily}</option>
-                  <option value="weekly">{t.weekly}</option>
+                  <option value="tr">Türkçe</option>
+                  <option value="en">English</option>
                 </select>
               </div>
-            )}
-
-            <div className="flex gap-3 pt-4">
-              <button
-                onClick={triggerBackup}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                {t.backupNow}
-              </button>
-              <button
-                onClick={handleExportData}
-                className="flex items-center gap-2 px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                {t.exportData}
-              </button>
-              <button
-                onClick={handleImportData}
-                className="flex items-center gap-2 px-4 py-2 bg-neutral-100 text-neutral-700 rounded-lg hover:bg-neutral-200 transition-colors"
-              >
-                <Upload className="w-4 h-4" />
-                {t.importData}
-              </button>
             </div>
-
-            <button
-              onClick={() => setShowBackupPanel(true)}
-              className="flex items-center justify-between w-full p-3 bg-neutral-50 rounded-lg hover:bg-neutral-100 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Database className="w-5 h-5 text-neutral-600" />
-                <span className="text-sm font-medium text-neutral-700">{t.backupRestore}</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-neutral-500" />
-            </button>
           </div>
-        </div>
 
-        {/* Synchronization */}
-        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-          <h3 className="text-lg font-semibold text-neutral-800 mb-4">{t.sync}</h3>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-neutral-800">{t.autoSync}</p>
-                <p className="text-sm text-neutral-600">{t.syncDesc}</p>
-              </div>
-              <button
-                onClick={() => handleSyncChange(!settings.syncEnabled)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.syncEnabled ? 'bg-primary-600' : 'bg-neutral-300'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.syncEnabled ? 'translate-x-6' : 'translate-x-1'
+          {/* Notifications */}
+          <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 transition-colors duration-300">
+            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t.notifications}</h3>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Bell className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+                  <div>
+                    <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.dailyReminders}</p>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.dailyDesc}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleNotificationChange('daily', !settings.notifications.daily)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.notifications.daily ? 'bg-primary-600' : 'bg-neutral-300 dark:bg-neutral-600'
                   }`}
-                />
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.notifications.daily ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.criticalAlerts}</p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.criticalDesc}</p>
+                </div>
+                <button
+                  onClick={() => handleNotificationChange('critical', !settings.notifications.critical)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.notifications.critical ? 'bg-primary-600' : 'bg-neutral-300 dark:bg-neutral-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.notifications.critical ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.hatchReminders}</p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.hatchDesc}</p>
+                </div>
+                <button
+                  onClick={() => handleNotificationChange('reminders', !settings.notifications.reminders)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.notifications.reminders ? 'bg-primary-600' : 'bg-neutral-300 dark:bg-neutral-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.notifications.reminders ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Backup */}
+          <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 transition-colors duration-300">
+            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t.backup}</h3>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.autoBackup}</p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.backupDesc}</p>
+                </div>
+                <button
+                  onClick={() => handleAutoBackupChange(!settings.autoBackup)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.autoBackup ? 'bg-primary-600' : 'bg-neutral-300 dark:bg-neutral-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.autoBackup ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {settings.autoBackup && (
+                <div className="ml-8">
+                  <p className="font-medium text-neutral-800 dark:text-neutral-200 mb-2">{t.backupFreq}</p>
+                  <select
+                    value={settings.backupFrequency}
+                    onChange={(e) => handleBackupFrequencyChange(e.target.value)}
+                    className="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-neutral-800 dark:text-neutral-200"
+                  >
+                    <option value="hourly">{t.hourly}</option>
+                    <option value="daily">{t.daily}</option>
+                    <option value="weekly">{t.weekly}</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={triggerBackup}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  {t.backupNow}
+                </button>
+                <button
+                  onClick={handleExportData}
+                  className="flex items-center gap-2 px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  {t.exportData}
+                </button>
+                <button
+                  onClick={handleImportData}
+                  className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
+                >
+                  <Upload className="w-4 h-4" />
+                  {t.importData}
+                </button>
+              </div>
+
+              <button
+                onClick={() => setShowBackupPanel(true)}
+                className="flex items-center justify-between w-full p-3 bg-neutral-50 dark:bg-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Database className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+                  <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t.backupRestore}</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
               </button>
             </div>
           </div>
-        </div>
 
-        {/* Account */}
-        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-          <h3 className="text-lg font-semibold text-neutral-800 mb-4">{t.account}</h3>
-          
-          <div className="space-y-3">
-            <button
-              onClick={handleSignOut}
-              disabled={loading}
-              className="flex items-center justify-between w-full p-3 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
-            >
-              <div className="flex items-center gap-3">
-                <LogOut className="w-5 h-5 text-red-600" />
-                <div className="text-left">
-                  <p className="font-medium text-red-800">{t.signOut}</p>
-                  <p className="text-sm text-red-600">{t.signOutDesc}</p>
-                </div>
-              </div>
-              {loading && (
-                <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* About */}
-        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-          <h3 className="text-lg font-semibold text-neutral-800 mb-4">{t.about}</h3>
-          
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Info className="w-5 h-5 text-neutral-600" />
+          {/* Synchronization */}
+          <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 transition-colors duration-300">
+            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t.sync}</h3>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-neutral-800">{t.version}</p>
-                  <p className="text-sm text-neutral-600">{appVersion}</p>
+                  <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.autoSync}</p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.syncDesc}</p>
                 </div>
+                <button
+                  onClick={() => handleSyncChange(!settings.syncEnabled)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.syncEnabled ? 'bg-primary-600' : 'bg-neutral-300 dark:bg-neutral-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.syncEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
               </div>
             </div>
+          </div>
 
-            <div className="pt-4 border-t border-neutral-200">
-              <p className="text-sm text-neutral-600 mb-3">
-                {t.description}
-              </p>
-              <div className="space-y-2">
-                <button 
-                  onClick={handleFeedbackSend}
-                  className="flex items-center justify-between w-full p-3 bg-neutral-50 rounded-lg hover:bg-neutral-100 transition-colors"
-                >
-                  <span className="text-sm font-medium text-neutral-700">{t.feedback}</span>
-                  <ChevronRight className="w-4 h-4 text-neutral-500" />
-                </button>
-                <button className="flex items-center justify-between w-full p-3 bg-neutral-50 rounded-lg hover:bg-neutral-100 transition-colors">
-                  <span className="text-sm font-medium text-neutral-700">{t.support}</span>
-                  <ChevronRight className="w-4 h-4 text-neutral-500" />
-                </button>
-                <button className="flex items-center justify-between w-full p-3 bg-neutral-50 rounded-lg hover:bg-neutral-100 transition-colors">
-                  <span className="text-sm font-medium text-neutral-700">{t.privacy}</span>
-                  <ChevronRight className="w-4 h-4 text-neutral-500" />
-                </button>
-                <button className="flex items-center justify-between w-full p-3 bg-neutral-50 rounded-lg hover:bg-neutral-100 transition-colors">
-                  <span className="text-sm font-medium text-neutral-700">{t.terms}</span>
-                  <ChevronRight className="w-4 h-4 text-neutral-500" />
-                </button>
+          {/* Account */}
+          <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 transition-colors duration-300">
+            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t.account}</h3>
+            
+            <div className="space-y-3">
+              <button
+                onClick={handleSignOut}
+                disabled={loading}
+                className="flex items-center justify-between w-full p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+              >
+                <div className="flex items-center gap-3">
+                  <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  <div className="text-left">
+                    <p className="font-medium text-red-800 dark:text-red-300">{t.signOut}</p>
+                    <p className="text-sm text-red-600 dark:text-red-400">{t.signOutDesc}</p>
+                  </div>
+                </div>
+                {loading && (
+                  <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* About */}
+          <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 transition-colors duration-300">
+            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t.about}</h3>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Info className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+                  <div>
+                    <p className="font-medium text-neutral-800 dark:text-neutral-200">{t.version}</p>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">{appVersion}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
+                  {t.description}
+                </p>
+                <div className="space-y-2">
+                  <button 
+                    onClick={handleFeedbackSend}
+                    className="flex items-center justify-between w-full p-3 bg-neutral-50 dark:bg-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t.feedback}</span>
+                    <ChevronRight className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+                  </button>
+                  <button className="flex items-center justify-between w-full p-3 bg-neutral-50 dark:bg-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors">
+                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t.support}</span>
+                    <ChevronRight className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+                  </button>
+                  <button className="flex items-center justify-between w-full p-3 bg-neutral-50 dark:bg-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors">
+                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t.privacy}</span>
+                    <ChevronRight className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+                  </button>
+                  <button className="flex items-center justify-between w-full p-3 bg-neutral-50 dark:bg-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors">
+                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t.terms}</span>
+                    <ChevronRight className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
