@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Trash2, Calendar, Users, FileText, Heart } from 'lucide-react';
+import { X, Save, Trash2, Calendar, Users, FileText, Heart, User } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { DatePicker } from '../Common/DatePicker';
 import { notificationService } from '../../services/notificationService';
@@ -13,13 +13,6 @@ interface Bird {
   species?: string;
 }
 
-interface BirdPair {
-  id: string;
-  male: Bird;
-  female: Bird;
-  displayName: string;
-}
-
 interface Incubation {
   id: string;
   user_id: string;
@@ -28,6 +21,8 @@ interface Incubation {
   expected_hatch_date: string;
   status: 'active' | 'completed' | 'failed';
   notes?: string;
+  female_bird_id?: string;
+  male_bird_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -50,7 +45,8 @@ export const IncubationForm: React.FC<IncubationFormProps> = ({
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
     nest_name: '',
-    pair_id: '',
+    female_bird_id: '',
+    male_bird_id: '',
     start_date: new Date().toISOString().split('T')[0], // Varsayılan: bugün
     notes: ''
   });
@@ -58,18 +54,20 @@ export const IncubationForm: React.FC<IncubationFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [availablePairs, setAvailablePairs] = useState<BirdPair[]>([]);
-  const [loadingPairs, setLoadingPairs] = useState(true);
+  const [maleBirds, setMaleBirds] = useState<Bird[]>([]);
+  const [femaleBirds, setFemaleBirds] = useState<Bird[]>([]);
+  const [loadingBirds, setLoadingBirds] = useState(true);
   const [showUnsavedChangesModal, setShowUnsavedChangesModal] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
-    loadAvailablePairs();
+    loadBirds();
     
     if (incubation && isEditing) {
       setFormData({
         nest_name: incubation.nest_name || '',
-        pair_id: '', // Mevcut kuluçka düzenlenirken çift bilgisi ayrı yüklenecek
+        female_bird_id: incubation.female_bird_id || '',
+        male_bird_id: incubation.male_bird_id || '',
         start_date: incubation.start_date || '',
         notes: incubation.notes || ''
       });
@@ -80,14 +78,15 @@ export const IncubationForm: React.FC<IncubationFormProps> = ({
   useEffect(() => {
     if (!isEditing) {
       const hasChanges = formData.nest_name.trim() !== '' || 
-                        formData.pair_id !== '' || 
+                        formData.female_bird_id !== '' || 
+                        formData.male_bird_id !== '' ||
                         formData.start_date !== new Date().toISOString().split('T')[0] ||
                         formData.notes.trim() !== '';
       setHasUnsavedChanges(hasChanges);
     }
   }, [formData, isEditing]);
 
-  const loadAvailablePairs = async () => {
+  const loadBirds = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -101,28 +100,16 @@ export const IncubationForm: React.FC<IncubationFormProps> = ({
       if (error) throw error;
 
       // Erkek ve dişi kuşları ayır
-      const maleBirds = (birds || []).filter(bird => bird.gender === 'male');
-      const femaleBirds = (birds || []).filter(bird => bird.gender === 'female');
+      const males = (birds || []).filter(bird => bird.gender === 'male');
+      const females = (birds || []).filter(bird => bird.gender === 'female');
 
-      // Çiftleri oluştur
-      const pairs: BirdPair[] = [];
-      maleBirds.forEach(male => {
-        femaleBirds.forEach(female => {
-          pairs.push({
-            id: `${male.id}-${female.id}`,
-            male,
-            female,
-            displayName: `${male.name} ♂ & ${female.name} ♀`
-          });
-        });
-      });
-
-      setAvailablePairs(pairs);
+      setMaleBirds(males);
+      setFemaleBirds(females);
     } catch (error) {
-      console.error('Error loading bird pairs:', error);
-      showToast('Kuş çiftleri yüklenirken hata oluştu', 'error');
+      console.error('Error loading birds:', error);
+      showToast('Kuşlar yüklenirken hata oluştu', 'error');
     } finally {
-      setLoadingPairs(false);
+      setLoadingBirds(false);
     }
   };
 
@@ -133,8 +120,12 @@ export const IncubationForm: React.FC<IncubationFormProps> = ({
       newErrors.nest_name = t('incubation.nestNameRequired');
     }
 
-    if (!formData.pair_id) {
-      newErrors.pair_id = 'Lütfen bir çift seçin';
+    if (!formData.female_bird_id) {
+      newErrors.female_bird_id = 'Lütfen bir dişi kuş seçin';
+    }
+
+    if (!formData.male_bird_id) {
+      newErrors.male_bird_id = 'Lütfen bir erkek kuş seçin';
     }
 
     if (!formData.start_date) {
@@ -157,6 +148,12 @@ export const IncubationForm: React.FC<IncubationFormProps> = ({
       if (startDate < oneYearAgo) {
         newErrors.start_date = 'Başlangıç tarihi çok eski';
       }
+    }
+
+    // Aynı kuş kontrol
+    if (formData.female_bird_id && formData.male_bird_id && formData.female_bird_id === formData.male_bird_id) {
+      newErrors.male_bird_id = 'Erkek ve dişi kuş aynı olamaz';
+      newErrors.female_bird_id = 'Erkek ve dişi kuş aynı olamaz';
     }
 
     setErrors(newErrors);
@@ -237,7 +234,10 @@ export const IncubationForm: React.FC<IncubationFormProps> = ({
       // Transform data for consistency
       const transformedData = {
         ...result.data,
-        pair_info: formData.pair_id ? availablePairs.find(p => p.id === formData.pair_id) : null
+        female_bird_id: formData.female_bird_id,
+        male_bird_id: formData.male_bird_id,
+        female_bird: femaleBirds.find(b => b.id === formData.female_bird_id),
+        male_bird: maleBirds.find(b => b.id === formData.male_bird_id)
       };
 
       onSave(transformedData);
@@ -310,7 +310,8 @@ export const IncubationForm: React.FC<IncubationFormProps> = ({
     }, 3000);
   };
 
-  const selectedPair = availablePairs.find(pair => pair.id === formData.pair_id);
+  const selectedFemale = femaleBirds.find(bird => bird.id === formData.female_bird_id);
+  const selectedMale = maleBirds.find(bird => bird.id === formData.male_bird_id);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -356,61 +357,140 @@ export const IncubationForm: React.FC<IncubationFormProps> = ({
               </p>
             </div>
 
-            {/* Çift Seçimi */}
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
-                Kuş Çifti <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500 z-10" />
-                <select
-                  value={formData.pair_id}
-                  onChange={(e) => handleInputChange('pair_id', e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900/50 focus:border-primary-400 dark:focus:border-primary-600 transition-all duration-300 bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 appearance-none ${
-                    errors.pair_id ? 'border-red-300 dark:border-red-700 focus:ring-red-200 dark:focus:ring-red-900/50 focus:border-red-400 dark:focus:border-red-600' : 'border-neutral-200 dark:border-neutral-600'
-                  }`}
-                  disabled={loadingPairs}
-                >
-                  <option value="">
-                    {loadingPairs ? 'Çiftler yükleniyor...' : 'Bir çift seçin'}
-                  </option>
-                  {availablePairs.map((pair) => (
-                    <option key={pair.id} value={pair.id}>
-                      {pair.displayName}
+            {/* Kuş Seçimleri */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Dişi Kuş Seçimi */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
+                  Dişi Kuş Seçimi <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-pink-500 z-10" />
+                  <select
+                    value={formData.female_bird_id}
+                    onChange={(e) => handleInputChange('female_bird_id', e.target.value)}
+                    className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900/50 focus:border-primary-400 dark:focus:border-primary-600 transition-all duration-300 bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 appearance-none ${
+                      errors.female_bird_id ? 'border-red-300 dark:border-red-700 focus:ring-red-200 dark:focus:ring-red-900/50 focus:border-red-400 dark:focus:border-red-600' : 'border-neutral-200 dark:border-neutral-600'
+                    }`}
+                    disabled={loadingBirds}
+                  >
+                    <option value="">
+                      {loadingBirds ? 'Dişi kuşlar yükleniyor...' : 'Bir dişi kuş seçin'}
                     </option>
-                  ))}
-                </select>
-              </div>
-              {errors.pair_id && (
-                <p className="mt-2 text-sm text-red-600 dark:text-red-400 animate-shake">{errors.pair_id}</p>
-              )}
-              
-              {/* Seçilen çift detayları */}
-              {selectedPair && (
-                <div className="mt-3 p-3 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="font-medium text-blue-700 dark:text-blue-300">♂ Erkek</p>
-                      <p className="text-neutral-700 dark:text-neutral-300">{selectedPair.male.name}</p>
-                      <p className="text-xs text-neutral-600 dark:text-neutral-400">{selectedPair.male.ring_number}</p>
-                    </div>
-                    <div>
-                      <p className="font-medium text-pink-700 dark:text-pink-300">♀ Dişi</p>
-                      <p className="text-neutral-700 dark:text-neutral-300">{selectedPair.female.name}</p>
-                      <p className="text-xs text-neutral-600 dark:text-neutral-400">{selectedPair.female.ring_number}</p>
+                    {femaleBirds.map((bird) => (
+                      <option key={bird.id} value={bird.id}>
+                        {bird.name} ({bird.ring_number})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {errors.female_bird_id && (
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-400 animate-shake">{errors.female_bird_id}</p>
+                )}
+                
+                {/* Seçilen dişi kuş detayları */}
+                {selectedFemale && (
+                  <div className="mt-3 p-3 bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 rounded-lg">
+                    <div className="text-sm">
+                      <p className="font-medium text-pink-700 dark:text-pink-300 flex items-center gap-2">
+                        ♀ {selectedFemale.name}
+                      </p>
+                      <p className="text-neutral-700 dark:text-neutral-300">{selectedFemale.ring_number}</p>
+                      {selectedFemale.species && (
+                        <p className="text-xs text-neutral-600 dark:text-neutral-400">{selectedFemale.species}</p>
+                      )}
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {availablePairs.length === 0 && !loadingPairs && (
-                <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                  <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                    ⚠️ Henüz çift oluşturulabilecek kuş yok. Önce erkek ve dişi kuşlar eklemelisiniz.
-                  </p>
+                {femaleBirds.length === 0 && !loadingBirds && (
+                  <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                      ⚠️ Henüz dişi kuş yok. Önce dişi kuş eklemelisiniz.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Erkek Kuş Seçimi */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
+                  Erkek Kuş Seçimi <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-500 z-10" />
+                  <select
+                    value={formData.male_bird_id}
+                    onChange={(e) => handleInputChange('male_bird_id', e.target.value)}
+                    className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900/50 focus:border-primary-400 dark:focus:border-primary-600 transition-all duration-300 bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 appearance-none ${
+                      errors.male_bird_id ? 'border-red-300 dark:border-red-700 focus:ring-red-200 dark:focus:ring-red-900/50 focus:border-red-400 dark:focus:border-red-600' : 'border-neutral-200 dark:border-neutral-600'
+                    }`}
+                    disabled={loadingBirds}
+                  >
+                    <option value="">
+                      {loadingBirds ? 'Erkek kuşlar yükleniyor...' : 'Bir erkek kuş seçin'}
+                    </option>
+                    {maleBirds.map((bird) => (
+                      <option key={bird.id} value={bird.id}>
+                        {bird.name} ({bird.ring_number})
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
+                {errors.male_bird_id && (
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-400 animate-shake">{errors.male_bird_id}</p>
+                )}
+                
+                {/* Seçilen erkek kuş detayları */}
+                {selectedMale && (
+                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="text-sm">
+                      <p className="font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                        ♂ {selectedMale.name}
+                      </p>
+                      <p className="text-neutral-700 dark:text-neutral-300">{selectedMale.ring_number}</p>
+                      {selectedMale.species && (
+                        <p className="text-xs text-neutral-600 dark:text-neutral-400">{selectedMale.species}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {maleBirds.length === 0 && !loadingBirds && (
+                  <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                      ⚠️ Henüz erkek kuş yok. Önce erkek kuş eklemelisiniz.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Çift Önizlemesi */}
+            {selectedFemale && selectedMale && (
+              <div className="p-4 bg-gradient-to-r from-pink-50 to-blue-50 dark:from-pink-900/20 dark:to-blue-900/20 border border-neutral-200 dark:border-neutral-700 rounded-lg">
+                <div className="flex items-center justify-center gap-4">
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center mb-2">
+                      <span className="text-pink-600 dark:text-pink-400 font-bold">♀</span>
+                    </div>
+                    <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{selectedFemale.name}</p>
+                  </div>
+                  <div className="flex items-center">
+                    <Heart className="w-6 h-6 text-red-500 animate-pulse" />
+                  </div>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-2">
+                      <span className="text-blue-600 dark:text-blue-400 font-bold">♂</span>
+                    </div>
+                    <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{selectedMale.name}</p>
+                  </div>
+                </div>
+                <p className="text-center text-sm text-neutral-600 dark:text-neutral-400 mt-3">
+                  🥚 Seçilen çift: {selectedFemale.name} & {selectedMale.name}
+                </p>
+              </div>
+            )}
 
             {/* Başlangıç Tarihi */}
             <div>
@@ -471,7 +551,7 @@ export const IncubationForm: React.FC<IncubationFormProps> = ({
             <div className="flex gap-4 pt-6">
               <button
                 type="submit"
-                disabled={loading || loadingPairs || availablePairs.length === 0}
+                disabled={loading || loadingBirds || femaleBirds.length === 0 || maleBirds.length === 0}
                 className="flex-1 bg-gradient-to-r from-primary-500 to-primary-600 text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-primary-600 hover:to-primary-700 focus:ring-4 focus:ring-primary-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
               >
                 {loading ? (
