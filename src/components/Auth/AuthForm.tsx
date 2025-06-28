@@ -124,10 +124,57 @@ export const AuthForm: React.FC = () => {
     validateEmail(newEmail);
   };
 
+  const getErrorMessage = (error: any, isSignUp: boolean) => {
+    const errorMessage = error?.message || '';
+    
+    // Handle specific error cases
+    if (errorMessage.includes('Invalid login credentials')) {
+      if (isSignUp) {
+        return 'Bu e-posta adresi zaten kayıtlı. Giriş yapmayı deneyin.';
+      } else {
+        return 'E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.';
+      }
+    }
+    
+    if (errorMessage.includes('Password should be at least')) {
+      return 'Şifre en az 6 karakter olmalıdır.';
+    }
+    
+    if (errorMessage.includes('User already registered')) {
+      return 'Bu e-posta adresi zaten kayıtlı. Giriş yapmayı deneyin.';
+    }
+    
+    if (errorMessage.includes('Email not confirmed')) {
+      return 'E-posta adresinizi doğrulamanız gerekiyor. E-posta kutunuzu kontrol edin.';
+    }
+    
+    if (errorMessage.includes('Invalid email')) {
+      return 'Geçerli bir e-posta adresi girin.';
+    }
+    
+    if (errorMessage.includes('Signup is disabled')) {
+      return 'Yeni kayıt şu anda devre dışı. Lütfen daha sonra tekrar deneyin.';
+    }
+    
+    if (errorMessage.includes('Too many requests')) {
+      return 'Çok fazla deneme yapıldı. Lütfen birkaç dakika bekleyin.';
+    }
+    
+    // Default error message
+    return isSignUp 
+      ? 'Kayıt olurken bir hata oluştu. Lütfen tekrar deneyin.' 
+      : 'Giriş yaparken bir hata oluştu. Lütfen tekrar deneyin.';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateEmail(email)) {
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Şifre en az 6 karakter olmalıdır.');
       return;
     }
 
@@ -143,7 +190,7 @@ export const AuthForm: React.FC = () => {
         if (error) throw error;
       }
     } catch (err: any) {
-      setError(err.message || 'Bir hata oluştu');
+      setError(getErrorMessage(err, isSignUp));
     } finally {
       setLoading(false);
     }
@@ -197,7 +244,7 @@ export const AuthForm: React.FC = () => {
             {/* Password Input */}
             <div className="space-y-2">
               <label htmlFor="password" className="block text-sm font-semibold text-gray-700 font-poppins">
-                Şifre
+                Şifre {isSignUp && <span className="text-gray-500 text-xs">(en az 6 karakter)</span>}
               </label>
               <div className="relative">
                 <input
@@ -206,6 +253,7 @@ export const AuthForm: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  minLength={6}
                   className="w-full px-4 py-3 sm:py-4 bg-white/70 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-primary-200 focus:border-primary-400 transition-all duration-300 text-gray-800 placeholder-gray-500 font-medium pr-12 transform focus:scale-[1.02] text-sm sm:text-base"
                   placeholder="••••••••"
                 />
@@ -229,7 +277,7 @@ export const AuthForm: React.FC = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading || !!emailError}
+              disabled={loading || !!emailError || password.length < 6}
               className="w-full bg-gradient-to-r from-orange-400 to-orange-500 text-white py-3 sm:py-4 px-6 rounded-2xl font-bold text-base sm:text-lg hover:from-orange-500 hover:to-orange-600 focus:ring-4 focus:ring-orange-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl font-poppins"
             >
               {loading ? (
@@ -255,7 +303,10 @@ export const AuthForm: React.FC = () => {
             
             <div className="text-center">
               <button
-                onClick={() => setIsSignUp(!isSignUp)}
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setError(''); // Clear error when switching modes
+                }}
                 className="text-gray-600 hover:text-gray-800 font-semibold transition-colors text-sm sm:text-base leading-tight"
               >
                 {isSignUp 
