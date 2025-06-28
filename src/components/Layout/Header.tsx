@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Bell, Settings, LogOut, Edit3, ChevronDown } from 'lucide-react';
+import { User, Bell, LogOut, Edit3, ChevronDown } from 'lucide-react';
 import { signOut } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 
@@ -65,13 +65,6 @@ export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSe
   const handleEditProfile = () => {
     if (onProfileEdit) {
       onProfileEdit();
-    }
-    setShowProfileMenu(false);
-  };
-
-  const handleSettingsClick = () => {
-    if (onSettingsClick) {
-      onSettingsClick();
     }
     setShowProfileMenu(false);
   };
@@ -154,14 +147,6 @@ export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSe
               <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            {/* Ayarlar */}
-            <button 
-              onClick={handleSettingsClick}
-              className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
-            >
-              <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-
             {/* Profil Menüsü */}
             <div className="relative" ref={menuRef}>
               <button
@@ -207,14 +192,6 @@ export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSe
                     >
                       <Edit3 className="w-4 h-4 mr-3 text-neutral-500" />
                       Profil Düzenle
-                    </button>
-
-                    <button
-                      onClick={handleSettingsClick}
-                      className="w-full flex items-center px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"
-                    >
-                      <Settings className="w-4 h-4 mr-3 text-neutral-500" />
-                      Ayarlar
                     </button>
 
                     <div className="border-t border-neutral-100 my-1"></div>
