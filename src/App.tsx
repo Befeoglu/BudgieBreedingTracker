@@ -15,7 +15,6 @@ import { SettingsPanel } from './components/Settings/SettingsPanel';
 import { ChicksView } from './components/Chicks/ChicksView';
 import { PedigreeView } from './components/Pedigree/PedigreeView';
 import { ProfileEditModal } from './components/Profile/ProfileEditModal';
-import { IncubationView } from './components/Incubation/IncubationView';
 
 function App() {
   const { user, loading } = useAuth();
@@ -63,7 +62,6 @@ function App() {
           <div className="animate-fade-in">
             <WelcomeSection user={user} />
             <QuickStats />
-            <ActiveIncubations />
             <TodoList />
           </div>
         );
@@ -77,12 +75,6 @@ function App() {
         return (
           <div className="animate-slide-up">
             <BirdGrid />
-          </div>
-        );
-      case 'incubation':
-        return (
-          <div className="animate-slide-up">
-            <IncubationView />
           </div>
         );
       case 'chicks':
@@ -122,8 +114,6 @@ function App() {
         return t('navigation.statistics');
       case 'birds':
         return t('navigation.myBirds');
-      case 'incubation':
-        return t('navigation.incubation');
       case 'chicks':
         return t('navigation.chicks');
       case 'pedigree':
