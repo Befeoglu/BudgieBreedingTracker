@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Edit3, Plus, Egg, Calendar, Users, FileText, Trash2, Baby } from 'lucide-react';
+import { X, Edit3, Plus, Egg, Calendar, Users, FileText, Trash2, Baby, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { IncubationForm } from './IncubationForm';
 import { EggForm } from './EggForm';
 import { supabase } from '../../lib/supabase';
@@ -38,6 +38,7 @@ interface Incubation {
   nest_name: string;
   start_date: string;
   expected_hatch_date: string;
+  actual_hatch_date?: string;
   status: 'active' | 'completed' | 'failed';
   notes?: string;
   female_bird_id?: string;
@@ -67,30 +68,53 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
   const [femaleBird, setFemaleBird] = useState<Bird | null>(null);
   const [maleBird, setMaleBird] = useState<Bird | null>(null);
   const [creatingChick, setCreatingChick] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadEggs();
-    loadBirds();
+    // Only load data if incubation and incubation.id are valid
+    if (incubation && incubation.id) {
+      loadEggs();
+      loadBirds();
+    } else {
+      setLoading(false);
+      setError('Kuluçka bilgileri bulunamadı veya geçersiz.');
+    }
   }, [incubation.id]);
 
   const loadEggs = async () => {
+    // Guard clause to ensure incubation.id is valid
+    if (!incubation || !incubation.id) {
+      console.warn('Cannot load eggs: incubation or incubation.id is undefined');
+      setLoading(false);
+      setError('Kuluçka bilgileri bulunamadı veya geçersiz.');
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('eggs')
         .select('*')
         .eq('clutch_id', incubation.id)
-        .order('number');
+        .order('number', { ascending: true });
 
       if (error) throw error;
       setEggs(data || []);
     } catch (error) {
       console.error('Error loading eggs:', error);
+      setError('Yumurta verileri yüklenirken hata oluştu.');
     } finally {
       setLoading(false);
     }
   };
 
   const loadBirds = async () => {
+    // Guard clause to ensure incubation exists
+    if (!incubation) {
+      console.warn('Cannot load birds: incubation is undefined');
+      setError('Kuluçka bilgileri bulunamadı veya geçersiz.');
+      return;
+    }
+
     try {
       // Only query for birds if the IDs are valid
       if (incubation.female_bird_id) {
@@ -291,6 +315,33 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
       default: return '❓';
     }
   };
+
+  // Early return if incubation is not valid
+  if (!incubation || !incubation.id || error) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-neutral-800 rounded-2xl max-w-md w-full p-6">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">
+              <AlertCircle className="w-12 h-12 mx-auto" />
+            </div>
+            <h2 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
+              Hata
+            </h2>
+            <p className="text-neutral-600 dark:text-neutral-400 mb-4">
+              {error || "Kuluçka bilgileri bulunamadı veya geçersiz."}
+            </p>
+            <button
+              onClick={onClose}
+              className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Kapat
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // İstatistikler
   const totalEggs = eggs.length;
@@ -520,7 +571,7 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
                 {eggs.map((egg) => (
                   <div
                     key={egg.id}
-                    className={`border-2 rounded-lg p-4 text-center hover:shadow-md transition-all duration-300 group ${getStatusColor(egg.status)}`}
+                    className={`border-2 rounded-lg p-4 text-center hover:shadow-md transition-all duration-300 group relative ${getStatusColor(egg.status)}`}
                   >
                     <div className="text-2xl mb-2">{getStatusIcon(egg.status)}</div>
                     <div className="font-bold text-lg mb-1">#{egg.number}</div>
@@ -569,16 +620,20 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
                       </div>
                     </div>
                     
-                    {/* Çıktı olan yumurta için Yavru Görüntüleme Butonu */}
-                    {egg.status === 'çıktı' && (
-                      <button
-                        onClick={() => alert('Yavru detayına gitmek için buraya tıklayın')}
-                        className="w-full px-2 py-1 bg-green-200 hover:bg-green-300 rounded text-xs flex items-center justify-center gap-1 mt-2"
-                      >
-                        <Baby className="w-3 h-3" />
-                        Yavru Gör
-                      </button>
-                    )}
+                    {/* Çıktı olan yumurta için yavru detay butonu */}
+                    <div className="mt-2">
+                      {egg.status === 'çıktı' || egg.status === 'hatched' ? (
+                        <button
+                          onClick={() => alert('Yavru detayına gitmek için buraya tıklayın')}
+                          className="w-full px-2 py-1 bg-green-200 hover:bg-green-300 dark:bg-green-900/30 dark:hover:bg-green-900/50 rounded text-xs text-green-800 dark:text-green-300 flex items-center justify-center gap-1"
+                        >
+                          <Baby className="w-3 h-3" />
+                          Yavru Gör
+                        </button>
+                      ) : (
+                        <div className="h-6"></div> {/* Spacer for consistent card heights */}
+                      )}
+                    </div>
                     
                     {/* Hover Actions */}
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex justify-center gap-1 mt-2">
@@ -598,13 +653,10 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
                       </button>
                     </div>
                     
-                    {/* Yumurta eklenme tarihi */}
-                    {egg.added_date && (
-                      <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
-                        {formatDate(new Date(egg.added_date), 'Tarih Yok')}
-                      </div>
-                    )}
-                    
+                    <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
+                      {egg.added_date ? formatDate(new Date(egg.added_date)) : 'Ekleme: Tarih Yok'}
+                    </div>
+
                     {/* Çıkıyor İşareti */}
                     {creatingChick === egg.id && (
                       <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center">
