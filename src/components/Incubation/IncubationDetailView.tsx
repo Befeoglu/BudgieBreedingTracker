@@ -69,11 +69,23 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
   const [creatingChick, setCreatingChick] = useState<string | null>(null);
 
   useEffect(() => {
-    loadEggs();
-    loadBirds();
-  }, [incubation.id]);
+    // Only load data if incubation and incubation.id are valid
+    if (incubation && incubation.id) {
+      loadEggs();
+      loadBirds();
+    } else {
+      setLoading(false);
+    }
+  }, [incubation?.id]);
 
   const loadEggs = async () => {
+    // Guard clause to ensure incubation.id is valid
+    if (!incubation || !incubation.id) {
+      console.warn('Cannot load eggs: incubation or incubation.id is undefined');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('eggs')
@@ -91,6 +103,12 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
   };
 
   const loadBirds = async () => {
+    // Guard clause to ensure incubation exists
+    if (!incubation) {
+      console.warn('Cannot load birds: incubation is undefined');
+      return;
+    }
+
     try {
       // Only query for birds if the IDs are valid
       if (incubation.female_bird_id) {
@@ -291,6 +309,33 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
       default: return '❓';
     }
   };
+
+  // Early return if incubation is not valid
+  if (!incubation || !incubation.id) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-neutral-800 rounded-2xl max-w-md w-full p-6">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">
+              <X className="w-12 h-12 mx-auto" />
+            </div>
+            <h2 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
+              Hata
+            </h2>
+            <p className="text-neutral-600 dark:text-neutral-400 mb-4">
+              Kuluçka bilgileri bulunamadı veya geçersiz.
+            </p>
+            <button
+              onClick={onClose}
+              className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Kapat
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // İstatistikler
   const totalEggs = eggs.length;
