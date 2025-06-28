@@ -257,6 +257,13 @@ export const IncubationForm: React.FC<IncubationFormProps> = ({
   const handleDelete = async () => {
     if (!incubation || !onDelete) return;
 
+    // Make sure we have a valid ID before attempting delete
+    if (!incubation.id) {
+      console.error('Cannot delete incubation with undefined ID');
+      showToast('Silme işlemi başarısız: Geçersiz ID', 'error');
+      return;
+    }
+
     setLoading(true);
 
     try {

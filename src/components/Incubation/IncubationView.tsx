@@ -262,8 +262,15 @@ export const IncubationView: React.FC = () => {
   };
 
   const handleDeleteIncubation = async (id: string) => {
+    // Ensure we have a valid ID before attempting delete
+    if (!id) {
+      console.error('Cannot delete incubation with undefined ID');
+      showToast('Silme işlemi başarısız: Geçersiz ID', 'error');
+      return;
+    }
+    
     const incubation = incubations.find(inc => inc.id === id);
-    const confirmed = window.confirm(`"${incubation?.nest_name}" kuluçkasını silmek istediğinizden emin misiniz?`);
+    const confirmed = window.confirm(`"${incubation?.nest_name || 'Bu kuluçkayı'}" silmek istediğinizden emin misiniz?`);
     if (!confirmed) return;
 
     try {
