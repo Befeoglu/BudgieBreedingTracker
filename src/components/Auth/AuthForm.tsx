@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { signIn, signUp } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 // Animated Bird Logo Component
 const AnimatedBirdLogo: React.FC = () => {
@@ -103,6 +104,8 @@ export const AuthForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [resetPasswordSuccess, setResetPasswordSuccess] = useState(false);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -122,6 +125,8 @@ export const AuthForm: React.FC = () => {
     const newEmail = e.target.value;
     setEmail(newEmail);
     validateEmail(newEmail);
+    // Clear reset password success when email changes
+    setResetPasswordSuccess(false);
   };
 
   const getErrorMessage = (error: any, isSignUp: boolean) => {
@@ -164,6 +169,43 @@ export const AuthForm: React.FC = () => {
     return isSignUp 
       ? 'Kayıt olurken bir hata oluştu. Lütfen tekrar deneyin.' 
       : 'Giriş yaparken bir hata oluştu. Lütfen tekrar deneyin.';
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Şifre sıfırlama için lütfen e-posta adresinizi girin.');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setError('Geçerli bir e-posta adresi girin.');
+      return;
+    }
+
+    setResetPasswordLoading(true);
+    setError('');
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setResetPasswordSuccess(true);
+    } catch (err: any) {
+      if (err.message?.includes('User not found')) {
+        setError('Bu e-posta adresi ile kayıtlı bir hesap bulunamadı.');
+      } else if (err.message?.includes('Too many requests')) {
+        setError('Çok fazla şifre sıfırlama talebi gönderildi. Lütfen birkaç dakika bekleyin.');
+      } else {
+        setError('Şifre sıfırlama e-postası gönderilirken bir hata oluştu. Lütfen tekrar deneyin.');
+      }
+    } finally {
+      setResetPasswordLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -267,6 +309,18 @@ export const AuthForm: React.FC = () => {
               </div>
             </div>
 
+            {/* Success Message for Password Reset */}
+            {resetPasswordSuccess && (
+              <div className="p-3 sm:p-4 bg-green-50 border-2 border-green-200 rounded-2xl">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <p className="text-sm text-green-700 font-medium leading-tight">
+                    Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. E-posta kutunuzu kontrol edin.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Error Message */}
             {error && (
               <div className="p-3 sm:p-4 bg-red-50 border-2 border-red-200 rounded-2xl animate-shake">
@@ -295,8 +349,19 @@ export const AuthForm: React.FC = () => {
           <div className="mt-6 sm:mt-8 space-y-4">
             {!isSignUp && (
               <div className="text-center">
-                <button className="text-primary-600 hover:text-primary-700 font-semibold transition-colors text-sm">
-                  Şifremi Unuttum
+                <button 
+                  onClick={handleForgotPassword}
+                  disabled={resetPasswordLoading}
+                  className="text-primary-600 hover:text-primary-700 font-semibold transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {resetPasswordLoading ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-3 h-3 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span>Gönderiliyor...</span>
+                    </div>
+                  ) : (
+                    'Şifremi Unuttum'
+                  )}
                 </button>
               </div>
             )}
@@ -306,6 +371,7 @@ export const AuthForm: React.FC = () => {
                 onClick={() => {
                   setIsSignUp(!isSignUp);
                   setError(''); // Clear error when switching modes
+                  setResetPasswordSuccess(false); // Clear success message
                 }}
                 className="text-gray-600 hover:text-gray-800 font-semibold transition-colors text-sm sm:text-base leading-tight"
               >
