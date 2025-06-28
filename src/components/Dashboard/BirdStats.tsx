@@ -2,7 +2,7 @@ import React from 'react';
 import { Bird, Users, TrendingUp, Target } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 
-export const ActiveIncubations: React.FC = () => {
+export const BirdStats: React.FC = () => {
   const { t } = useTranslation();
 
   return (

@@ -5,7 +5,7 @@ import { AuthForm } from './components/Auth/AuthForm';
 import { Header } from './components/Layout/Header';
 import { BottomNav } from './components/Layout/BottomNav';
 import { WelcomeSection } from './components/Dashboard/WelcomeSection';
-import { ActiveIncubations } from './components/Dashboard/ActiveIncubations';
+import { BirdStats } from './components/Dashboard/BirdStats';
 import { TodoList } from './components/Dashboard/TodoList';
 import { QuickStats } from './components/Dashboard/QuickStats';
 import { BirdGrid } from './components/Birds/BirdGrid';
@@ -61,7 +61,7 @@ function App() {
         return (
           <div className="animate-fade-in">
             <WelcomeSection user={user} />
-            <QuickStats />
+            <BirdStats />
             <TodoList />
           </div>
         );

@@ -3,7 +3,6 @@ export interface Translations {
   dashboard: string;
   statistics: string;
   myBirds: string;
-  incubation: string;
   chicks: string;
   pedigree: string;
   calendar: string;
@@ -59,19 +58,6 @@ export interface Translations {
   editBird: string;
   deleteBird: string;
 
-  // Incubation
-  incubationTracking: string;
-  nestName: string;
-  startDate: string;
-  expectedHatchDate: string;
-  actualHatchDate: string;
-  eggCount: string;
-  successRate: string;
-  status: string;
-  active: string;
-  completed: string;
-  failed: string;
-
   // Chicks
   chickName: string;
   hatchDate: string;
@@ -114,7 +100,6 @@ export const translations: Record<'tr' | 'en', Translations> = {
     dashboard: 'Ana Sayfa',
     statistics: 'İstatistikler',
     myBirds: 'Kuşlarım',
-    incubation: 'Kuluçka Takibi',
     chicks: 'Yavrular',
     pedigree: 'Soy Ağacı',
     calendar: 'Takvim',
@@ -223,7 +208,6 @@ export const translations: Record<'tr' | 'en', Translations> = {
     dashboard: 'Dashboard',
     statistics: 'Statistics',
     myBirds: 'My Birds',
-    incubation: 'Incubation Tracking',
     chicks: 'Chicks',
     pedigree: 'Pedigree',
     calendar: 'Calendar',

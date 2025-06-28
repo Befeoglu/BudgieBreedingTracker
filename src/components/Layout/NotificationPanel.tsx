@@ -82,7 +82,6 @@ export const NotificationPanel: React.FC = () => {
 
   const getNotificationIcon = (type: NotificationData['type']) => {
     switch (type) {
-      case 'hatch_reminder':
       case 'hatch_occurred':
         return Egg;
       case 'daily_summary':
@@ -100,8 +99,6 @@ export const NotificationPanel: React.FC = () => {
 
   const getNotificationColor = (type: NotificationData['type']) => {
     switch (type) {
-      case 'hatch_reminder':
-        return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/30';
       case 'hatch_occurred':
         return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30';
       case 'daily_summary':

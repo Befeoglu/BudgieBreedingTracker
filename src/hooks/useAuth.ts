@@ -2,7 +2,12 @@ import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { auth } from '../lib/auth';
 
-export const useAuth = () => {
+interface UseAuthReturn {
+  user: User | null;
+  loading: boolean;
+}
+
+export const useAuth = (): UseAuthReturn => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
