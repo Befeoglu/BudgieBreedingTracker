@@ -295,15 +295,28 @@ export const SupabaseDiagnostics: React.FC = () => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase.rpc('execute_sql', { query: sqlQuery });
       
-      if (error) throw error;
+      // Direct SQL execution for simple queries
+      if (sqlQuery.toLowerCase().includes('select')) {
+        // For SELECT queries, use direct supabase query
+        const { data, error } = await supabase.rpc('execute_sql', { query: sqlQuery });
+        
+        if (error) throw error;
+        
+        setSqlResult(data);
+        showToast('SQL sorgusu başarıyla çalıştırıldı', 'success');
+      } else {
+        // For DDL queries, show warning and provide manual instructions
+        setSqlResult({
+          warning: 'DDL komutları güvenlik nedeniyle otomatik çalıştırılamaz',
+          instruction: 'Bu komutu Supabase SQL Editor\'da manuel olarak çalıştırın',
+          query: sqlQuery
+        });
+        showToast('DDL komutu hazırlandı - Manuel çalıştırma gerekli', 'warning');
+      }
       
-      setSqlResult(data);
-      showToast('SQL sorgusu başarıyla çalıştırıldı', 'success');
-      
-      // Log the successful query
-      logOperation('sql_execute', 'success', { query: sqlQuery, result: data });
+      // Log the operation
+      logOperation('sql_execute', 'success', { query: sqlQuery });
       
     } catch (error: any) {
       setSqlResult({ error: error.message });
@@ -317,15 +330,49 @@ export const SupabaseDiagnostics: React.FC = () => {
   };
 
   const renameColumn = async (tableName: string, oldName: string, newName: string) => {
+    // Fixed SQL syntax - added TO keyword
     const query = `ALTER TABLE public.${tableName} RENAME COLUMN ${oldName} TO ${newName};`;
     setSqlQuery(query);
-    await executeSQLQuery();
+    
+    // Show the query for manual execution
+    setSqlResult({
+      warning: 'Bu DDL komutu manuel olarak çalıştırılmalıdır',
+      instruction: 'Aşağıdaki komutu Supabase SQL Editor\'da çalıştırın',
+      query: query,
+      steps: [
+        '1. Supabase Dashboard\'a gidin',
+        '2. SQL Editor\'ı açın',
+        '3. Aşağıdaki komutu kopyalayıp yapıştırın',
+        '4. RUN butonuna tıklayın'
+      ]
+    });
+    
+    showToast('SQL komutu hazırlandı - Manuel çalıştırma gerekli', 'warning');
   };
 
   const addColumn = async (tableName: string, columnName: string, dataType: string) => {
     const query = `ALTER TABLE public.${tableName} ADD COLUMN ${columnName} ${dataType};`;
     setSqlQuery(query);
-    await executeSQLQuery();
+    
+    // Show the query for manual execution
+    setSqlResult({
+      warning: 'Bu DDL komutu manuel olarak çalıştırılmalıdır',
+      instruction: 'Aşağıdaki komutu Supabase SQL Editor\'da çalıştırın',
+      query: query,
+      steps: [
+        '1. Supabase Dashboard\'a gidin',
+        '2. SQL Editor\'ı açın',
+        '3. Aşağıdaki komutu kopyalayıp yapıştırın',
+        '4. RUN butonuna tıklayın'
+      ]
+    });
+    
+    showToast('SQL komutu hazırlandı - Manuel çalıştırma gerekli', 'warning');
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    showToast('Panoya kopyalandı', 'success');
   };
 
   const logOperation = (operation: string, status: 'success' | 'error', details: any) => {
@@ -598,14 +645,61 @@ export const SupabaseDiagnostics: React.FC = () => {
                 >
                   Temizle
                 </button>
+
+                {sqlResult?.query && (
+                  <button
+                    onClick={() => copyToClipboard(sqlResult.query)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  >
+                    SQL Kopyala
+                  </button>
+                )}
               </div>
 
               {sqlResult && (
                 <div className="mt-4">
                   <h4 className="font-medium mb-2">Sonuç:</h4>
-                  <pre className="bg-neutral-50 p-4 rounded-lg overflow-auto text-sm">
-                    {JSON.stringify(sqlResult, null, 2)}
-                  </pre>
+                  <div className="bg-neutral-50 p-4 rounded-lg overflow-auto">
+                    {sqlResult.warning && (
+                      <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                        <p className="text-yellow-800 font-medium">{sqlResult.warning}</p>
+                        <p className="text-yellow-700 text-sm mt-1">{sqlResult.instruction}</p>
+                      </div>
+                    )}
+                    
+                    {sqlResult.query && (
+                      <div className="mb-4">
+                        <h5 className="font-medium mb-2">SQL Komutu:</h5>
+                        <pre className="bg-neutral-900 text-green-400 p-3 rounded text-sm overflow-x-auto">
+                          {sqlResult.query}
+                        </pre>
+                      </div>
+                    )}
+
+                    {sqlResult.steps && (
+                      <div className="mb-4">
+                        <h5 className="font-medium mb-2">Adımlar:</h5>
+                        <ol className="list-decimal list-inside space-y-1 text-sm">
+                          {sqlResult.steps.map((step: string, index: number) => (
+                            <li key={index} className="text-neutral-700">{step}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+
+                    {sqlResult.error && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded">
+                        <p className="text-red-800 font-medium">Hata:</p>
+                        <p className="text-red-700 text-sm">{sqlResult.error}</p>
+                      </div>
+                    )}
+
+                    {sqlResult.data && (
+                      <pre className="text-sm">
+                        {JSON.stringify(sqlResult.data, null, 2)}
+                      </pre>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
