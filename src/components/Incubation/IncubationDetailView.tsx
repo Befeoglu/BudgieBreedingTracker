@@ -3,7 +3,7 @@ import { X, Edit3, Plus, Egg, Calendar, Users, FileText, Trash2, Eye } from 'luc
 import { IncubationForm } from './IncubationForm';
 import { EggForm } from './EggForm';
 import { supabase } from '../../lib/supabase';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, isValid } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
 interface Bird {
@@ -191,14 +191,28 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
   const successRate = totalEggs > 0 ? Math.round((eggStats.çıktı / totalEggs) * 100) : 0;
   const existingEggNumbers = eggs.map(egg => egg.number);
 
-  // İlerleme hesaplama
+  // Tarih doğrulama ve güvenli işlemler
   const start = new Date(incubation.start_date);
   const expected = new Date(incubation.expected_hatch_date);
   const today = new Date();
   
-  const totalDays = differenceInDays(expected, start);
-  const daysPassed = differenceInDays(today, start);
-  const progress = Math.min(Math.max((daysPassed / totalDays) * 100, 0), 100);
+  const isStartDateValid = isValid(start);
+  const isExpectedDateValid = isValid(expected);
+  
+  // İlerleme hesaplama - sadece geçerli tarihlerle
+  let totalDays = 0;
+  let daysPassed = 0;
+  let progress = 0;
+  
+  if (isStartDateValid && isExpectedDateValid) {
+    totalDays = differenceInDays(expected, start);
+    daysPassed = differenceInDays(today, start);
+    progress = totalDays > 0 ? Math.min(Math.max((daysPassed / totalDays) * 100, 0), 100) : 0;
+  }
+
+  const formatDate = (date: Date, fallback: string = 'Tarih Yok') => {
+    return isValid(date) ? format(date, 'dd MMM yyyy', { locale: tr }) : fallback;
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -240,25 +254,25 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
                   <div className="flex justify-between">
                     <span className="text-neutral-600 dark:text-neutral-400">Başlangıç:</span>
                     <span className="text-neutral-800 dark:text-neutral-200 font-medium">
-                      {format(start, 'dd MMM yyyy', { locale: tr })}
+                      {formatDate(start)}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-neutral-600 dark:text-neutral-400">Tahmini Çıkım:</span>
                     <span className="text-neutral-800 dark:text-neutral-200 font-medium">
-                      {format(expected, 'dd MMM yyyy', { locale: tr })}
+                      {formatDate(expected)}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-neutral-600 dark:text-neutral-400">Geçen Gün:</span>
                     <span className="text-neutral-800 dark:text-neutral-200 font-medium">
-                      {daysPassed}/{totalDays} gün
+                      {isStartDateValid && isExpectedDateValid ? `${daysPassed}/${totalDays} gün` : 'Hesaplanamıyor'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-neutral-600 dark:text-neutral-400">İlerleme:</span>
                     <span className="text-neutral-800 dark:text-neutral-200 font-medium">
-                      {Math.round(progress)}%
+                      {isStartDateValid && isExpectedDateValid ? `${Math.round(progress)}%` : 'Hesaplanamıyor'}
                     </span>
                   </div>
                 </div>
