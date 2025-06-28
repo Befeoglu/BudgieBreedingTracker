@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Bell, Settings, LogOut, Edit3, ChevronDown } from 'lucide-react';
-import { signOut } from '../../lib/supabase';
+import { signOut } from '../../lib/auth';
 
 interface HeaderProps {
   user: any;
@@ -14,10 +14,7 @@ export const Header: React.FC<HeaderProps> = ({ user, title, onProfileEdit, onSe
   const menuRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      console.error('Error signing out:', error);
-    }
+    await signOut();
     setShowProfileMenu(false);
   };
 
