@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Edit3, Plus, Egg, Calendar, Users, FileText, Trash2, Eye } from 'lucide-react';
+import { X, Edit3, Plus, Egg, Calendar, Users, FileText, Trash2, Baby } from 'lucide-react';
 import { IncubationForm } from './IncubationForm';
 import { EggForm } from './EggForm';
 import { supabase } from '../../lib/supabase';
+import { notificationService } from '../../services/notificationService';
 import { format, differenceInDays, isValid } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
@@ -18,9 +19,13 @@ interface EggData {
   id: string;
   clutch_id: string;
   number: number;
+  position?: number; // Eski sistemden gelen yumurtalar için
   status: 'belirsiz' | 'boş' | 'dolu' | 'çıktı';
   mother_id?: string;
   father_id?: string;
+  laid_date?: string;
+  expected_hatch_date?: string;
+  actual_hatch_date?: string;
   added_date: string;
   notes?: string;
   created_at: string;
@@ -61,6 +66,7 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [femaleBird, setFemaleBird] = useState<Bird | null>(null);
   const [maleBird, setMaleBird] = useState<Bird | null>(null);
+  const [creatingChick, setCreatingChick] = useState<string | null>(null);
 
   useEffect(() => {
     loadEggs();
@@ -115,14 +121,68 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
     }
   };
 
-  const handleSaveEgg = (savedEgg: EggData) => {
+  const handleSaveEgg = async (savedEgg: EggData) => {
     if (editingEgg) {
+      // Eğer durum "çıktı" olarak değiştirildiyse ve önceki durum "çıktı" değilse
+      if (savedEgg.status === 'çıktı' && editingEgg.status !== 'çıktı') {
+        // Yeni yavru oluştur
+        await createChickFromEgg(savedEgg);
+      }
+      
       setEggs(prev => prev.map(egg => egg.id === savedEgg.id ? savedEgg : egg));
     } else {
+      // Yeni yumurta eklendi, sıralı listede göster
       setEggs(prev => [...prev, savedEgg].sort((a, b) => a.number - b.number));
+      
+      // Eğer yeni eklenen yumurta "çıktı" durumundaysa
+      if (savedEgg.status === 'çıktı') {
+        await createChickFromEgg(savedEgg);
+      }
     }
+    
     setShowEggForm(false);
     setEditingEgg(null);
+  };
+
+  const createChickFromEgg = async (egg: EggData) => {
+    try {
+      setCreatingChick(egg.id);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Kullanıcı oturumu bulunamadı");
+      
+      const chickName = `Yavru #${egg.number}`;
+      const hatchDate = egg.actual_hatch_date || new Date().toISOString().split('T')[0];
+      
+      // Yavru oluştur
+      const { data: chick, error: chickError } = await supabase
+        .from('chicks')
+        .insert({
+          user_id: user.id,
+          egg_id: egg.id,
+          name: chickName,
+          hatch_date: hatchDate,
+          notes: `${incubation.nest_name} kuluçkasından çıkan ${egg.number} numaralı yumurta.`
+        })
+        .select()
+        .single();
+        
+      if (chickError) throw chickError;
+      
+      // Bildirim gönder
+      await notificationService.notifyChickHatched(
+        chickName, 
+        incubation.nest_name
+      );
+      
+      showToast(`${chickName} başarıyla oluşturuldu`, 'success');
+      
+    } catch (error: any) {
+      console.error('Error creating chick from egg:', error);
+      showToast(`Yavru oluşturma hatası: ${error.message}`, 'error');
+    } finally {
+      setCreatingChick(null);
+    }
   };
 
   const handleEditEgg = (egg: EggData) => {
@@ -148,6 +208,54 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
     } catch (error: any) {
       console.error('Error deleting egg:', error);
       showToast('Silme işlemi başarısız', 'error');
+    }
+  };
+
+  const handleEggStatusChange = async (eggId: string, newStatus: 'belirsiz' | 'boş' | 'dolu' | 'çıktı') => {
+    const egg = eggs.find(e => e.id === eggId);
+    if (!egg) return;
+    
+    try {
+      // Eğer durum "çıktı" olarak değiştirildiyse ve önceki durum "çıktı" değilse
+      if (newStatus === 'çıktı' && egg.status !== 'çıktı') {
+        // Yumurta durumunu güncelle
+        const { data: updatedEgg, error } = await supabase
+          .from('eggs')
+          .update({
+            status: newStatus,
+            actual_hatch_date: new Date().toISOString().split('T')[0]
+          })
+          .eq('id', eggId)
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        // UI'ı güncelle
+        setEggs(prev => prev.map(e => e.id === eggId ? updatedEgg : e));
+        
+        // Yavru oluştur
+        await createChickFromEgg(updatedEgg);
+        
+        return;
+      }
+      
+      // Diğer durum değişiklikleri için basit güncelleme
+      const { data: updatedEgg, error } = await supabase
+        .from('eggs')
+        .update({ status: newStatus })
+        .eq('id', eggId)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      setEggs(prev => prev.map(e => e.id === eggId ? updatedEgg : e));
+      showToast(`Yumurta durumu "${newStatus}" olarak güncellendi`, 'success');
+      
+    } catch (error: any) {
+      console.error('Error updating egg status:', error);
+      showToast(`Durum güncelleme hatası: ${error.message}`, 'error');
     }
   };
 
@@ -416,10 +524,64 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
                   >
                     <div className="text-2xl mb-2">{getStatusIcon(egg.status)}</div>
                     <div className="font-bold text-lg mb-1">#{egg.number}</div>
-                    <div className="text-xs mb-2 capitalize">{egg.status}</div>
+                    <div className="text-xs mb-3 capitalize">{egg.status}</div>
+                    
+                    {/* Durum Değiştirme Butonları */}
+                    <div className="mb-3">
+                      <div className="text-xs mb-1 text-neutral-600 dark:text-neutral-400">Durum Değiştir:</div>
+                      <div className="flex flex-wrap justify-center gap-1">
+                        {egg.status !== 'belirsiz' && (
+                          <button
+                            onClick={() => handleEggStatusChange(egg.id, 'belirsiz')}
+                            title="Belirsiz"
+                            className="w-6 h-6 bg-gray-200 hover:bg-gray-300 rounded-full text-xs flex items-center justify-center"
+                          >
+                            ❓
+                          </button>
+                        )}
+                        {egg.status !== 'boş' && (
+                          <button
+                            onClick={() => handleEggStatusChange(egg.id, 'boş')}
+                            title="Boş"
+                            className="w-6 h-6 bg-red-200 hover:bg-red-300 rounded-full text-xs flex items-center justify-center"
+                          >
+                            ⭕
+                          </button>
+                        )}
+                        {egg.status !== 'dolu' && (
+                          <button
+                            onClick={() => handleEggStatusChange(egg.id, 'dolu')}
+                            title="Dolu"
+                            className="w-6 h-6 bg-blue-200 hover:bg-blue-300 rounded-full text-xs flex items-center justify-center"
+                          >
+                            🥚
+                          </button>
+                        )}
+                        {egg.status !== 'çıktı' && (
+                          <button
+                            onClick={() => handleEggStatusChange(egg.id, 'çıktı')}
+                            title="Çıktı"
+                            className="w-6 h-6 bg-green-200 hover:bg-green-300 rounded-full text-xs flex items-center justify-center"
+                          >
+                            🐣
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Çıktı olan yumurta için Yavru Görüntüleme Butonu */}
+                    {egg.status === 'çıktı' && (
+                      <button
+                        onClick={() => alert('Yavru detayına gitmek için buraya tıklayın')}
+                        className="w-full px-2 py-1 bg-green-200 hover:bg-green-300 rounded text-xs flex items-center justify-center gap-1 mt-2"
+                      >
+                        <Baby className="w-3 h-3" />
+                        Yavru Gör
+                      </button>
+                    )}
                     
                     {/* Hover Actions */}
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex justify-center gap-1">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex justify-center gap-1 mt-2">
                       <button
                         onClick={() => handleEditEgg(egg)}
                         className="p-1 text-blue-600 hover:bg-blue-200 dark:hover:bg-blue-800 rounded transition-colors"
@@ -435,6 +597,20 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
                         <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
+                    
+                    {/* Yumurta eklenme tarihi */}
+                    {egg.added_date && (
+                      <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
+                        {formatDate(new Date(egg.added_date), 'Tarih Yok')}
+                      </div>
+                    )}
+                    
+                    {/* Çıkıyor İşareti */}
+                    {creatingChick === egg.id && (
+                      <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center">
+                        <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

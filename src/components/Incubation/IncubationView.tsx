@@ -3,7 +3,7 @@ import { Plus, Search, Calendar, Egg, TrendingUp, Edit3, Trash2, Eye, Heart } fr
 import { IncubationForm } from './IncubationForm';
 import { IncubationDetailView } from './IncubationDetailView';
 import { supabase } from '../../lib/supabase';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, isValid } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
 interface Incubation {
@@ -39,14 +39,28 @@ const IncubationCard: React.FC<IncubationCardProps> = ({
   onView,
   ...incubation
 }) => {
-  const start = new Date(start_date);
-  const expected = new Date(expected_hatch_date);
-  const today = new Date();
+  // Güvenli tarih işleme
+  const isStartValid = isValid(new Date(start_date));
+  const isExpectedValid = isValid(new Date(expected_hatch_date));
   
-  const totalDays = differenceInDays(expected, start);
-  const daysPassed = differenceInDays(today, start);
-  const daysRemaining = differenceInDays(expected, today);
-  const progress = Math.min(Math.max((daysPassed / totalDays) * 100, 0), 100);
+  let start = new Date();
+  let expected = new Date();
+  let today = new Date();
+  let totalDays = 0;
+  let daysPassed = 0;
+  let daysRemaining = 0;
+  let progress = 0;
+  
+  if (isStartValid && isExpectedValid) {
+    start = new Date(start_date);
+    expected = new Date(expected_hatch_date);
+    today = new Date();
+    
+    totalDays = differenceInDays(expected, start);
+    daysPassed = differenceInDays(today, start);
+    daysRemaining = differenceInDays(expected, today);
+    progress = Math.min(Math.max((daysPassed / totalDays) * 100, 0), 100);
+  }
 
   const statusColors = {
     active: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -62,6 +76,8 @@ const IncubationCard: React.FC<IncubationCardProps> = ({
 
   const getStatusMessage = () => {
     if (status !== 'active') return statusTexts[status];
+    
+    if (!isStartValid || !isExpectedValid) return 'Tarih Hatası';
     
     if (daysRemaining > 0) {
       return `${daysRemaining} gün kaldı`;
@@ -111,7 +127,7 @@ const IncubationCard: React.FC<IncubationCardProps> = ({
         </div>
 
         {/* İlerleme Çubuğu (sadece aktif kuluçkalar için) */}
-        {status === 'active' && (
+        {status === 'active' && isStartValid && isExpectedValid && (
           <div className="mb-4">
             <div className="flex justify-between text-sm text-neutral-600 mb-2">
               <span>İlerleme</span>
@@ -142,7 +158,7 @@ const IncubationCard: React.FC<IncubationCardProps> = ({
           <div>
             <Calendar className="w-4 h-4 text-neutral-500 mx-auto mb-1" />
             <div className="text-sm font-medium text-neutral-800">
-              {format(start, 'dd MMM', { locale: tr })}
+              {isStartValid ? format(start, 'dd MMM', { locale: tr }) : '??'}
             </div>
             <div className="text-xs text-neutral-500">Başlangıç</div>
           </div>
@@ -154,7 +170,7 @@ const IncubationCard: React.FC<IncubationCardProps> = ({
           <div>
             <TrendingUp className="w-4 h-4 text-neutral-500 mx-auto mb-1" />
             <div className="text-sm font-medium text-neutral-800">
-              {format(expected, 'dd MMM', { locale: tr })}
+              {isExpectedValid ? format(expected, 'dd MMM', { locale: tr }) : '??'}
             </div>
             <div className="text-xs text-neutral-500">Tahmini</div>
           </div>

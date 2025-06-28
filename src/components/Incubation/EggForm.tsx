@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Egg, User } from 'lucide-react';
+import { X, Save, Egg, User, Calendar } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { DatePicker } from '../Common/DatePicker';
 
@@ -242,22 +242,25 @@ export const EggForm: React.FC<EggFormProps> = ({
                 <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
                   Yumurta Numarası <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={formData.number}
-                  onChange={(e) => handleInputChange('number', parseInt(e.target.value) || 1)}
-                  className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900/50 focus:border-primary-400 dark:focus:border-primary-600 transition-all duration-300 bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 ${
-                    errors.number ? 'border-red-300 dark:border-red-700' : 'border-neutral-200 dark:border-neutral-600'
-                  }`}
-                  placeholder="1"
-                />
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={formData.number}
+                    onChange={(e) => handleInputChange('number', parseInt(e.target.value) || 1)}
+                    className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900/50 focus:border-primary-400 dark:focus:border-primary-600 transition-all duration-300 bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 ${
+                      errors.number ? 'border-red-300 dark:border-red-700' : 'border-neutral-200 dark:border-neutral-600'
+                    }`}
+                    placeholder="1"
+                  />
+                </div>
                 {errors.number && (
                   <p className="mt-2 text-sm text-red-600 dark:text-red-400 animate-shake">{errors.number}</p>
                 )}
                 <div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-                  Mevcut: {existingEggNumbers.join(', ') || 'Henüz yumurta yok'}
+                  Mevcut: {existingEggNumbers.length > 0 ? existingEggNumbers.join(', ') : 'Henüz yumurta yok'}
                 </div>
               </div>
 
@@ -403,6 +406,19 @@ export const EggForm: React.FC<EggFormProps> = ({
                 </p>
               </div>
             </div>
+
+            {/* Yavruluk Bilgisi */}
+            {formData.status === 'çıktı' && !isEditing && (
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Baby className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <p className="text-sm font-medium text-green-800 dark:text-green-300">Yavru Oluşturulacak</p>
+                </div>
+                <p className="text-xs text-green-700 dark:text-green-300">
+                  "Çıktı" durumundaki yumurta için otomatik olarak bir yavru kaydı oluşturulacaktır.
+                </p>
+              </div>
+            )}
 
             {/* Butonlar */}
             <div className="flex gap-4 pt-6">
