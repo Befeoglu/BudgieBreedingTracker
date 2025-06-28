@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Moon, Sun, Globe, Bell, Download, Upload, Info, ChevronRight, Database, LogOut } from 'lucide-react';
+import { Moon, Sun, Globe, Bell, Download, Upload, Info, ChevronRight, Database, LogOut, Trash2 } from 'lucide-react';
 import { BackupPanel } from '../Backup/BackupPanel';
 import { LanguageSelector } from '../Common/LanguageSelector';
+import { DeleteAllDataModal } from './DeleteAllDataModal';
 import { signOut } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -33,6 +34,7 @@ export const SettingsPanel: React.FC = () => {
   });
 
   const [showBackupPanel, setShowBackupPanel] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [appVersion, setAppVersion] = useState('1.0.0');
 
@@ -579,7 +581,7 @@ export const SettingsPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* Account */}
+          {/* Account & Data Management */}
           <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 transition-colors duration-300">
             <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{t('settings.account')}</h3>
             
@@ -599,6 +601,21 @@ export const SettingsPanel: React.FC = () => {
                 {loading && (
                   <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
                 )}
+              </button>
+
+              {/* Delete All Data Button */}
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="flex items-center justify-between w-full p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  <div className="text-left">
+                    <p className="font-medium text-red-800 dark:text-red-300">{t('settings.deleteAllData.title')}</p>
+                    <p className="text-sm text-red-600 dark:text-red-400">{t('settings.deleteAllData.description')}</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-red-500 dark:text-red-400 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
           </div>
@@ -648,6 +665,12 @@ export const SettingsPanel: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete All Data Modal */}
+      <DeleteAllDataModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+      />
     </div>
   );
 };

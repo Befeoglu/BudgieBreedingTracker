@@ -358,7 +358,32 @@
     "importError": "İçe aktarma sırasında hata oluştu",
     "invalidFileFormat": "Geçersiz dosya formatı",
     "fileReadError": "Dosya okuma hatası",
-    "signOutError": "Çıkış yaparken hata oluştu"
+    "signOutError": "Çıkış yaparken hata oluştu",
+    "deleteAllData": {
+      "title": "Tüm Verileri Sil",
+      "description": "Tüm verilerinizi kalıcı olarak silin",
+      "warningTitle": "⚠️ Dikkat: Bu İşlem Geri Alınamaz!",
+      "warningMessage": "Bu işlem uygulamadaki tüm verilerinizi (yerel depolama ve Supabase) kalıcı olarak silecektir. Bu işlem geri alınamaz ve verileriniz tamamen kaybolacaktır.",
+      "whatWillBeDeleted": "Silinecek Veriler:",
+      "allBirds": "Tüm kuş kayıtları ve fotoğrafları",
+      "allIncubations": "Tüm kuluçka takipleri ve yumurta kayıtları",
+      "allChicks": "Tüm yavru kayıtları",
+      "allTodos": "Tüm görev listeleri",
+      "allPedigree": "Tüm soy ağacı bilgileri",
+      "allBackups": "Tüm yedekleme dosyaları",
+      "localData": "Tüm yerel ayarlar ve tercihler",
+      "confirmInstruction": "Devam etmek için aşağıya tam olarak şunu yazın:",
+      "confirmPlaceholder": "Onay metnini buraya yazın...",
+      "confirmTextError": "Onay metni hatalı. Lütfen tam olarak belirtilen metni yazın.",
+      "continue": "Devam Et",
+      "finalWarningTitle": "Son Uyarı!",
+      "finalWarningMessage": "Bu işlemden sonra tüm verileriniz kalıcı olarak silinecek ve hesabınızdan çıkış yapılacaktır. Bu işlem kesinlikle geri alınamaz!",
+      "goBack": "Geri Dön",
+      "deleteNow": "Şimdi Sil",
+      "deleting": "Siliniyor...",
+      "success": "Verileriniz başarıyla silindi. Hesabınızdan çıkış yapılıyor...",
+      "error": "Veri silme işlemi sırasında hata oluştu"
+    }
   },
   "backup": {
     "backupRestore": "Yedekleme & Geri Yükleme",

@@ -358,7 +358,32 @@
     "importError": "Import error occurred",
     "invalidFileFormat": "Invalid file format",
     "fileReadError": "File reading error",
-    "signOutError": "Error signing out"
+    "signOutError": "Error signing out",
+    "deleteAllData": {
+      "title": "Delete All Data",
+      "description": "Permanently delete all your data",
+      "warningTitle": "⚠️ Warning: This Action Cannot Be Undone!",
+      "warningMessage": "This operation will permanently delete all your data (local storage and Supabase) from the application. This action cannot be undone and your data will be completely lost.",
+      "whatWillBeDeleted": "Data to be deleted:",
+      "allBirds": "All bird records and photos",
+      "allIncubations": "All incubation tracking and egg records",
+      "allChicks": "All chick records",
+      "allTodos": "All task lists",
+      "allPedigree": "All pedigree information",
+      "allBackups": "All backup files",
+      "localData": "All local settings and preferences",
+      "confirmInstruction": "To continue, type exactly the following:",
+      "confirmPlaceholder": "Type confirmation text here...",
+      "confirmTextError": "Confirmation text is incorrect. Please type exactly as specified.",
+      "continue": "Continue",
+      "finalWarningTitle": "Final Warning!",
+      "finalWarningMessage": "After this operation, all your data will be permanently deleted and you will be signed out. This action is absolutely irreversible!",
+      "goBack": "Go Back",
+      "deleteNow": "Delete Now",
+      "deleting": "Deleting...",
+      "success": "Your data has been successfully deleted. Signing you out...",
+      "error": "An error occurred during data deletion"
+    }
   },
   "backup": {
     "backupRestore": "Backup & Restore",
