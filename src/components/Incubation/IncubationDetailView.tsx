@@ -91,7 +91,7 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
         .from('eggs')
         .select('*')
         .eq('clutch_id', incubation.id)
-        .order('number');
+        .order('number', { ascending: true });
 
       if (error) throw error;
       setEggs(data || []);
@@ -565,7 +565,7 @@ export const IncubationDetailView: React.FC<IncubationDetailViewProps> = ({
                 {eggs.map((egg) => (
                   <div
                     key={egg.id}
-                    className={`border-2 rounded-lg p-4 text-center hover:shadow-md transition-all duration-300 group ${getStatusColor(egg.status)}`}
+                    className={`border-2 rounded-lg p-4 text-center hover:shadow-md transition-all duration-300 group relative ${getStatusColor(egg.status)}`}
                   >
                     <div className="text-2xl mb-2">{getStatusIcon(egg.status)}</div>
                     <div className="font-bold text-lg mb-1">#{egg.number}</div>
